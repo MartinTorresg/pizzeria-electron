@@ -1,6 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function OrderForm({ pizzas }) {
+function OrderForm() {
+  const [pizzas, setPizzas] = useState([]);
+
+  // Cargar las pizzas al montar el componente
+  useEffect(() => {
+    console.log('Invocando get-pizzas para cargar las pizzas...');
+    window.electron.invoke('get-pizzas').then((loadedPizzas) => {
+      console.log('Pizzas cargadas desde el CSV:', loadedPizzas);
+      setPizzas(loadedPizzas);
+    }).catch((error) => {
+      console.error('Error al cargar las pizzas:', error);
+    });
+  }, []); // Se ejecuta al montar el componente
+
   const [selectedPizza, setSelectedPizza] = useState('');
   const [size, setSize] = useState('medium');
   const [quantity, setQuantity] = useState(1);
@@ -9,8 +22,8 @@ function OrderForm({ pizzas }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const pizza = pizzas.find((p) => p.name === selectedPizza);
-    const price = pizza ? pizza.prices[size] * quantity : 0;
+    const pizza = pizzas.find((p) => p.Nombre === selectedPizza);
+    const price = pizza ? pizza[`Precio${size.charAt(0).toUpperCase() + size.slice(1)}`] * quantity : 0;
 
     const orderData = {
       pizza: selectedPizza,
@@ -20,7 +33,10 @@ function OrderForm({ pizzas }) {
       price,
     };
 
-    console.log('Pedido guardado:', orderData);
+    console.log('Guardando pedido:', orderData);
+
+    // Enviar el pedido al backend para guardarlo en el archivo CSV
+    window.electron.send('save-order', orderData);
 
     setSelectedPizza('');
     setSize('medium');
@@ -37,14 +53,17 @@ function OrderForm({ pizzas }) {
         <select
           id="pizza"
           value={selectedPizza}
-          onChange={(e) => setSelectedPizza(e.target.value)}
+          onChange={(e) => {
+            console.log('Pizza seleccionada:', e.target.value);
+            setSelectedPizza(e.target.value);
+          }}
           className="w-full mt-2 p-3 border border-green-500 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
           required
         >
           <option value="">Seleccionar pizza...</option>
-          {pizzas.map((pizza) => (
-            <option key={pizza.name} value={pizza.name}>
-              {pizza.name}
+          {pizzas.map((pizza, index) => (
+            <option key={index} value={pizza.Nombre}>
+              {pizza.Nombre}
             </option>
           ))}
         </select>
