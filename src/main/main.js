@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { dialog, app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
@@ -106,8 +106,21 @@ ipcMain.handle('get-pizzas', async () => {
 
 // Función para guardar pedidos en el CSV
 ipcMain.on('save-order', (event, orderData) => {
-  const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv'); // Guardar pedidos en userData
-  const csvContent = `${orderData.pizza},${orderData.size},${orderData.quantity},${orderData.client},${orderData.price},En preparación\n`;
+  const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv');
+
+  // Aseguramos que los valores no sean undefined antes de escribir
+  const csvContent = orderData.items.map(item => {
+    const pizza = item.pizza || 'Desconocida';
+    const size = item.size || 'Desconocido';
+    const quantity = item.quantity || 1;
+    const client = orderData.client || 'Desconocido';
+    const price = item.price || 0;
+    const status = 'En preparación';
+    
+    return `${pizza},${size},${quantity},${client},${price},${status}\n`;
+  }).join('');
+
+  console.log('Guardando pedido con los siguientes datos:', csvContent);
 
   // Si no existe el archivo de pedidos, lo creamos con encabezados
   if (!fs.existsSync(ordersCsvPath)) {
@@ -116,8 +129,9 @@ ipcMain.on('save-order', (event, orderData) => {
   }
 
   fs.appendFileSync(ordersCsvPath, csvContent, 'utf8');
-  console.log('Pedido guardado:', orderData);
+  console.log('Pedido guardado correctamente.');
 });
+
 
 // Función para cargar pedidos desde el CSV
 ipcMain.handle('load-orders', () => {
@@ -131,4 +145,120 @@ ipcMain.handle('load-orders', () => {
     return orders;
   }
   return [];
+});
+
+// Función para mostrar el diálogo de impresión y permitir elegir la impresora
+ipcMain.on('print-receipt', (event, orderData) => {
+  console.log('Iniciando proceso de impresión para el pedido:', orderData);
+
+  // Crea una ventana invisible para la impresión del recibo
+  const win = new BrowserWindow({ show: false });
+
+  // Generamos el HTML con estilo inline para asegurarnos de que se apliquen los estilos
+  const receiptHTML = `
+    <html>
+      <head>
+        <title>Boleta</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            width: 300px;
+            margin: 0 auto;
+            text-align: center;
+            color: #000;
+          }
+          h1 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 5px;
+          }
+          p {
+            margin: 5px 0;
+          }
+          .ticket-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+          }
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+          }
+          .items-table th, .items-table td {
+            text-align: left;
+            padding: 5px 0;
+            border-bottom: 1px dashed #000;
+          }
+          .total {
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 16px;
+            border-top: 2px solid #000;
+            padding-top: 10px;
+          }
+          .footer {
+            font-size: 12px;
+            margin-top: 20px;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Ristorante Pizzeria</h1>
+        <p class="ticket-header">Cliente: ${orderData.client}</p>
+        <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Cant.</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orderData.items.map(item => `
+              <tr>
+                <td>${item.pizza}${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size})</td>
+                <td>${item.quantity}</td>
+                <td>$${item.price.toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <p class="total">Total a pagar: $${orderData.total.toFixed(2)}</p>
+
+        <div class="footer">
+          <p>¡Gracias por su compra!</p>
+          <p>Ristorante Pizzeria</p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  // Cargamos el HTML generado directamente en la ventana
+  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`);
+
+  // Una vez que la página HTML se cargue, mostramos el cuadro de diálogo de impresión
+  win.webContents.on('did-finish-load', () => {
+    console.log('Boleta cargada, mostrando cuadro de diálogo de impresión.');
+
+    win.webContents.print({
+      silent: false,  // Mostrar el cuadro de diálogo de impresión
+      printBackground: true, // Imprimir el fondo si es necesario
+    }, (success, errorType) => {
+      if (!success) {
+        console.error('Error al imprimir:', errorType);
+      } else {
+        console.log('Impresión completada.');
+      }
+
+      // Cerrar la ventana después de la impresión
+      win.close();
+    });
+  });
 });
