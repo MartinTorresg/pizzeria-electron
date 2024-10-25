@@ -37,64 +37,68 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Función para escribir una pizza al CSV, asegurando la misma ubicación
+// Función para guardar la imagen en el disco
+function saveImageToDisk(imageData, imageName) {
+  const imagesPath = path.join(app.getPath('userData'), 'images');
+  if (!fs.existsSync(imagesPath)) {
+    fs.mkdirSync(imagesPath); // Crear la carpeta si no existe
+  }
+  
+  const imagePath = path.join(imagesPath, imageName);
+  const base64Data = imageData.replace(/^data:image\/png;base64,/, '').replace(/^data:image\/jpeg;base64,/, ''); // Elimina el prefijo
+  fs.writeFileSync(imagePath, base64Data, 'base64'); // Guarda la imagen en disco
+  return imagePath; // Devuelve la ruta donde se guardó la imagen
+}
+
+// Modificar la función writePizzaToCSV
 function writePizzaToCSV(pizza) {
-  const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv'); // Ruta donde guardaremos el CSV en userData
+  const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv');
 
-  // Mostrar la ruta donde se está guardando el archivo CSV
-  console.log('Agregando pizza en la ruta:', pizzasCsvPath);
+  // Guardar la imagen y obtener la ruta
+  const imagePath = saveImageToDisk(pizza.image, `${pizza.name}.png`);
 
-  // Verificar si el archivo ya existe
-  const fileExists = fs.existsSync(pizzasCsvPath);
-
-  // Si no existe, creamos el archivo y agregamos los encabezados
-  if (!fileExists) {
-    const headers = 'Nombre,PrecioMediano,PrecioFamiliar,Ingredientes\n';
+  if (!fs.existsSync(pizzasCsvPath)) {
+    const headers = 'Nombre,PrecioMediano,PrecioFamiliar,Ingredientes,Imagen\n';
     fs.writeFileSync(pizzasCsvPath, headers, 'utf8');
-    console.log('Archivo pizzas.csv creado con encabezados en:', pizzasCsvPath);
   }
 
-  // Añadir la pizza al archivo CSV con los ingredientes separados por "|"
-  const pizzaData = `${pizza.name},${pizza.prices.medium},${pizza.prices.large},${pizza.ingredients.join('|')}\n`;
+  // Añadir la pizza al archivo CSV con la ruta de la imagen
+  const pizzaData = `${pizza.name},${pizza.prices.medium},${pizza.prices.large},${pizza.ingredients.join('|')},${imagePath}\n`;
   fs.appendFileSync(pizzasCsvPath, pizzaData, 'utf8');
-  console.log('Pizza añadida al archivo:', pizza, 'en:', pizzasCsvPath);
 }
 
 // Función para leer las pizzas del CSV desde la carpeta de datos del usuario
 function readPizzasFromCSV() {
   return new Promise((resolve, reject) => {
     const pizzas = [];
-    const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv'); // Ruta para leer desde userData
-    console.log('Leyendo pizzas desde el archivo CSV en:', pizzasCsvPath);
+    const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv');
 
     if (fs.existsSync(pizzasCsvPath)) {
       fs.createReadStream(pizzasCsvPath)
-        .pipe(csv(['Nombre', 'PrecioMediano', 'PrecioFamiliar', 'Ingredientes']))
+        .pipe(csv(['Nombre', 'PrecioMediano', 'PrecioFamiliar', 'Ingredientes', 'Imagen']))
         .on('data', (data) => {
-          console.log('Datos leídos desde el CSV:', data);
           if (data.Nombre !== 'Nombre') {
             pizzas.push({
               Nombre: data.Nombre,
               PrecioMediano: data.PrecioMediano,
               PrecioFamiliar: data.PrecioFamiliar,
               ingredients: data.Ingredientes ? data.Ingredientes.split('|') : [],
+              image: data.Imagen, // Añadir la ruta de la imagen
             });
           }
         })
         .on('end', () => {
-          console.log('Pizzas cargadas correctamente:', pizzas);
           resolve(pizzas);
         })
         .on('error', (error) => {
-          console.error('Error al leer el archivo CSV:', error);
           reject(error);
         });
     } else {
-      console.log('El archivo pizzas.csv no existe en la ruta:', pizzasCsvPath);
       resolve([]);
     }
   });
 }
+
 
 // Registrar el handler para agregar pizzas
 ipcMain.on('add-pizza', (event, pizza) => {

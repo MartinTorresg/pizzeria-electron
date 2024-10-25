@@ -4,13 +4,19 @@ import AddPizzaForm from './components/AddPizzaForm';
 import OrdersList from './components/OrdersList';
 import SalesDashboard from './components/SalesDashboard'; // Importa el dashboard de ventas
 import FinanceDashboard from './components/FinanceDashboard'; // Importa el dashboard de finanzas
+import AddAccompanimentForm from './components/AddAccompanimentForm'; // Asegúrate de tener este componente
 
 function App() {
   const [currentComponent, setCurrentComponent] = useState(<OrderForm pizzas={[]} />);
   const [pizzas, setPizzas] = useState([]);
+  const [accompaniments, setAccompaniments] = useState([]); // Estado para acompañamientos
 
   const handleAddPizza = (newPizza) => {
     setPizzas([...pizzas, newPizza]);
+  };
+
+  const handleAddAccompaniment = (newAccompaniment) => {
+    setAccompaniments([...accompaniments, newAccompaniment]);
   };
 
   const renderComponent = (component) => {
@@ -24,7 +30,7 @@ function App() {
           <div className="space-x-4">
             <button
               className="hover:bg-red-500 p-2 rounded transition duration-200 bg-red-400 text-white font-bold"
-              onClick={() => renderComponent(<OrderForm pizzas={pizzas} />)}
+              onClick={() => renderComponent(<OrderForm pizzas={pizzas} accompaniments={accompaniments} />)} // Pasar acompañamientos
             >
               Tomar Pedido
             </button>
@@ -51,6 +57,12 @@ function App() {
               onClick={() => renderComponent(<FinanceDashboard />)}
             >
               Dashboard de Finanzas
+            </button>
+            <button
+              className="hover:bg-yellow-600 p-2 rounded transition duration-200 bg-yellow-500 text-white font-bold"
+              onClick={() => renderComponent(<AddAccompanimentForm onAddAccompaniment={handleAddAccompaniment} />)} // Botón para agregar acompañamientos
+            >
+              Agregar Acompañamiento
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ function AddPizzaForm() {
   const [mediumPrice, setMediumPrice] = useState('');
   const [largePrice, setLargePrice] = useState('');
   const [ingredients, setIngredients] = useState(''); // Estado para los ingredientes
+  const [image, setImage] = useState(null); // Nuevo estado para la imagen
   const [pizzas, setPizzas] = useState([]);
   const [message, setMessage] = useState('');
 
@@ -18,6 +19,17 @@ function AddPizzaForm() {
     });
   }, []);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result); // Establece la URL de la imagen
+      };
+      reader.readAsDataURL(file); // Convierte el archivo a una URL de datos
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -29,7 +41,7 @@ function AddPizzaForm() {
       return;
     }
 
-    if (!name || !mediumPrice || !largePrice || !ingredients) {
+    if (!name || !mediumPrice || !largePrice || !ingredients || !image) {
       setMessage('Por favor, rellena todos los campos');
       console.log('Formulario incompleto');
       return;
@@ -47,6 +59,7 @@ function AddPizzaForm() {
         large: parseFloat(largePrice),
       },
       ingredients: filteredIngredients,
+      image, // Incluir la imagen como una URL de datos
     };
 
     try {
@@ -65,6 +78,7 @@ function AddPizzaForm() {
     setMediumPrice('');
     setLargePrice('');
     setIngredients('');
+    setImage(null); // Limpiar el campo de imagen
   };
 
   return (
@@ -127,6 +141,19 @@ function AddPizzaForm() {
           required
         />
         <small className="text-gray-500">Separe los ingredientes con comas (la base de salsa de tomate y queso mozzarella está incluida).</small>
+      </div>
+
+      <div className="mb-4">
+        <label htmlFor="image" className="block text-gray-700">Seleccionar Imagen:</label>
+        <input
+          type="file"
+          id="image"
+          onChange={handleImageChange}
+          className="w-full mt-1 p-2 border border-green-400 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600"
+          accept="image/*"
+          required
+        />
+        <small className="text-gray-500">Sube una imagen de la pizza.</small>
       </div>
 
       <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg py-2 transition duration-200">
