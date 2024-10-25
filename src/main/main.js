@@ -107,24 +107,23 @@ ipcMain.handle('get-pizzas', async () => {
 // Función para guardar pedidos en el CSV
 ipcMain.on('save-order', (event, orderData) => {
   const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv');
-
-  // Aseguramos que los valores no sean undefined antes de escribir
+  
+  // Verifica que los datos estén completos antes de guardarlos
   const csvContent = orderData.items.map(item => {
     const pizza = item.pizza || 'Desconocida';
     const size = item.size || 'Desconocido';
     const quantity = item.quantity || 1;
     const client = orderData.client || 'Desconocido';
     const price = item.price || 0;
-    const status = 'En preparación';
+    const orderType = orderData.orderType || 'Desconocido';
+    const date = new Date().toLocaleString();
     
-    return `${pizza},${size},${quantity},${client},${price},${status}\n`;
+    return `${pizza},${size},${quantity},${client},${price},${orderType},${date},En preparación\n`;
   }).join('');
-
-  console.log('Guardando pedido con los siguientes datos:', csvContent);
 
   // Si no existe el archivo de pedidos, lo creamos con encabezados
   if (!fs.existsSync(ordersCsvPath)) {
-    const headers = 'Pizza,Tamaño,Cantidad,Cliente,Precio,Estado\n';
+    const headers = 'Pizza,Tamaño,Cantidad,Cliente,Precio,Tipo de Pedido,Fecha,Estado\n';
     fs.writeFileSync(ordersCsvPath, headers, 'utf8');
   }
 
@@ -132,20 +131,34 @@ ipcMain.on('save-order', (event, orderData) => {
   console.log('Pedido guardado correctamente.');
 });
 
-
 // Función para cargar pedidos desde el CSV
 ipcMain.handle('load-orders', () => {
   const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv');
+  console.log('Leyendo pedidos desde:', ordersCsvPath);
+
   if (fs.existsSync(ordersCsvPath)) {
     const content = fs.readFileSync(ordersCsvPath, 'utf8');
     const orders = content.split('\n').filter(line => line).map(line => {
-      const [pizza, size, quantity, client, price, status] = line.split(',');
-      return { pizza, size, quantity, client, price, status };
+      const [pizza, size, quantity, client, price, orderType, date, status] = line.split(',');
+      return {
+        pizza,
+        size,
+        quantity,
+        client,
+        price: parseFloat(price),
+        orderType,
+        date,
+        status,
+      };
     });
+    console.log('Pedidos cargados:', orders);
     return orders;
   }
+
+  console.log('No se encontraron pedidos.');
   return [];
 });
+
 
 // Función para mostrar el diálogo de impresión y permitir elegir la impresora
 ipcMain.on('print-receipt', (event, orderData) => {

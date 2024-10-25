@@ -7,6 +7,7 @@ function OrderForm() {
   const [size, setSize] = useState('medium');
   const [quantity, setQuantity] = useState(1);
   const [client, setClient] = useState('');
+  const [orderType, setOrderType] = useState('local');
   const [orderItems, setOrderItems] = useState([]);
 
   // Cargar las pizzas al montar el componente
@@ -71,19 +72,24 @@ function OrderForm() {
     const orderData = {
       client,
       items: orderItems,
+      orderType, // Tipo de pedido: local, retiro, delivery
+      date: new Date().toLocaleString(), // Fecha del pedido
       total,
     };
+    
+    console.log('Guardando pedido con los siguientes datos:', orderData);
   
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
-
+  
     window.electron.on('receipt-printed', (event, filePath) => {
       console.log(`Recibo generado y guardado en: ${filePath}`);
       alert(`Recibo guardado en: ${filePath}`);
     });
-
+  
     setClient('');
     setOrderItems([]);
+    setOrderType('local'); // Restablecer el tipo de pedido a "local" por defecto
   };
 
   return (
@@ -153,6 +159,21 @@ function OrderForm() {
             min="1"
             required
           />
+        </div>
+
+        <div className="mb-6">
+          <label htmlFor="order-type" className="block text-gray-700 font-semibold">Tipo de Pedido:</label>
+          <select
+            id="order-type"
+            value={orderType}
+            onChange={(e) => setOrderType(e.target.value)}
+            className="w-full mt-2 p-3 border border-green-500 rounded-md"
+            required
+          >
+            <option value="local">Consumo en el Local</option>
+            <option value="pickup">Retiro en el Local</option>
+            <option value="delivery">Delivery</option>
+          </select>
         </div>
 
         <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg py-3 transition duration-200 shadow-md">

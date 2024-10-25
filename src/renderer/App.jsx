@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import OrderForm from './components/OrderForm';
 import AddPizzaForm from './components/AddPizzaForm';
+import OrdersList from './components/OrdersList'; // Importar el nuevo componente
 
 function App() {
   const [currentComponent, setCurrentComponent] = useState(<OrderForm pizzas={[]} />);
@@ -31,13 +32,19 @@ function App() {
             >
               Agregar Pizza
             </button>
+            <button
+              className="hover:bg-blue-600 p-2 rounded transition duration-200 bg-blue-500 text-white font-bold"
+              onClick={() => renderComponent(<OrdersList />)}
+            >
+              Ver Pedidos
+            </button>
           </div>
         </div>
       </header>
 
       {/* Contenedor principal con más tamaño y mejor centrado */}
       <main className="flex-grow flex justify-center items-center px-4">
-        <div className="max-w-3xl w-full">{currentComponent}</div> {/* Cambiado a max-w-3xl */}
+        <div className="max-w-3xl w-full">{currentComponent}</div>
       </main>
     </div>
   );
