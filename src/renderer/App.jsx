@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import OrderForm from './components/OrderForm';
 import AddPizzaForm from './components/AddPizzaForm';
-import OrdersList from './components/OrdersList'; // Importar el nuevo componente
+import OrdersList from './components/OrdersList';
+import SalesDashboard from './components/SalesDashboard'; // Importa el dashboard de ventas
+import FinanceDashboard from './components/FinanceDashboard'; // Importa el dashboard de finanzas
 
 function App() {
   const [currentComponent, setCurrentComponent] = useState(<OrderForm pizzas={[]} />);
@@ -38,16 +40,25 @@ function App() {
             >
               Ver Pedidos
             </button>
+            <button
+              className="hover:bg-purple-600 p-2 rounded transition duration-200 bg-purple-500 text-white font-bold"
+              onClick={() => renderComponent(<SalesDashboard />)}
+            >
+              Dashboard de Ventas
+            </button>
+            <button
+              className="hover:bg-orange-600 p-2 rounded transition duration-200 bg-orange-500 text-white font-bold"
+              onClick={() => renderComponent(<FinanceDashboard />)}
+            >
+              Dashboard de Finanzas
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Contenedor principal con más tamaño y mejor centrado */}
       <main className="flex-grow flex justify-center items-start px-4 mt-4">
         <div className="max-w-4xl w-full">{currentComponent}</div>
       </main>
-
-
     </div>
   );
 }

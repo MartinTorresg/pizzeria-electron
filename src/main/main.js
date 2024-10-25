@@ -37,6 +37,29 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+// Función para escribir una pizza al CSV, asegurando la misma ubicación
+function writePizzaToCSV(pizza) {
+  const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv'); // Ruta donde guardaremos el CSV en userData
+
+  // Mostrar la ruta donde se está guardando el archivo CSV
+  console.log('Agregando pizza en la ruta:', pizzasCsvPath);
+
+  // Verificar si el archivo ya existe
+  const fileExists = fs.existsSync(pizzasCsvPath);
+
+  // Si no existe, creamos el archivo y agregamos los encabezados
+  if (!fileExists) {
+    const headers = 'Nombre,PrecioMediano,PrecioFamiliar,Ingredientes\n';
+    fs.writeFileSync(pizzasCsvPath, headers, 'utf8');
+    console.log('Archivo pizzas.csv creado con encabezados en:', pizzasCsvPath);
+  }
+
+  // Añadir la pizza al archivo CSV con los ingredientes separados por "|"
+  const pizzaData = `${pizza.name},${pizza.prices.medium},${pizza.prices.large},${pizza.ingredients.join('|')}\n`;
+  fs.appendFileSync(pizzasCsvPath, pizzaData, 'utf8');
+  console.log('Pizza añadida al archivo:', pizza, 'en:', pizzasCsvPath);
+}
+
 // Función para leer las pizzas del CSV desde la carpeta de datos del usuario
 function readPizzasFromCSV() {
   return new Promise((resolve, reject) => {
@@ -46,11 +69,16 @@ function readPizzasFromCSV() {
 
     if (fs.existsSync(pizzasCsvPath)) {
       fs.createReadStream(pizzasCsvPath)
-        .pipe(csv(['Nombre', 'PrecioMediano', 'PrecioFamiliar'])) // Sin definir encabezados, csv-parser los detectará
+        .pipe(csv(['Nombre', 'PrecioMediano', 'PrecioFamiliar', 'Ingredientes']))
         .on('data', (data) => {
           console.log('Datos leídos desde el CSV:', data);
           if (data.Nombre !== 'Nombre') {
-            pizzas.push(data);
+            pizzas.push({
+              Nombre: data.Nombre,
+              PrecioMediano: data.PrecioMediano,
+              PrecioFamiliar: data.PrecioFamiliar,
+              ingredients: data.Ingredientes ? data.Ingredientes.split('|') : [],
+            });
           }
         })
         .on('end', () => {
@@ -66,29 +94,6 @@ function readPizzasFromCSV() {
       resolve([]);
     }
   });
-}
-
-// Función para escribir una pizza al CSV, asegurando la misma ubicación
-function writePizzaToCSV(pizza) {
-  const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv'); // Ruta donde guardaremos el CSV en userData
-
-  // Mostrar la ruta donde se está guardando el archivo CSV
-  console.log('Agregando pizza en la ruta:', pizzasCsvPath);
-
-  // Verificar si el archivo ya existe
-  const fileExists = fs.existsSync(pizzasCsvPath);
-
-  // Si no existe, creamos el archivo y agregamos los encabezados
-  if (!fileExists) {
-    const headers = 'Nombre,PrecioMediano,PrecioFamiliar\n';
-    fs.writeFileSync(pizzasCsvPath, headers, 'utf8');
-    console.log('Archivo pizzas.csv creado con encabezados en:', pizzasCsvPath);
-  }
-
-  // Añadir la pizza al archivo CSV
-  const pizzaData = `${pizza.name},${pizza.prices.medium},${pizza.prices.large}\n`;
-  fs.appendFileSync(pizzasCsvPath, pizzaData, 'utf8');
-  console.log('Pizza añadida al archivo:', pizza, 'en:', pizzasCsvPath);
 }
 
 // Registrar el handler para agregar pizzas
@@ -260,4 +265,57 @@ ipcMain.on('print-receipt', (event, orderData) => {
       win.close();
     });
   });
+});
+
+// Función para leer los acompañamientos del CSV
+function readAccompanimentsFromCSV() {
+  return new Promise((resolve, reject) => {
+    const accompaniments = [];
+    const accompanimentsCsvPath = path.join(app.getPath('userData'), 'accompaniments.csv');
+
+    if (fs.existsSync(accompanimentsCsvPath)) {
+      fs.createReadStream(accompanimentsCsvPath)
+        .pipe(csv(['Nombre', 'Precio']))
+        .on('data', (data) => {
+          if (data.Nombre !== 'Nombre') {
+            accompaniments.push({
+              name: data.Nombre,
+              price: parseFloat(data.Precio),
+            });
+          }
+        })
+        .on('end', () => {
+          resolve(accompaniments);
+        })
+        .on('error', (error) => {
+          reject(error);
+        });
+    } else {
+      resolve([]);
+    }
+  });
+}
+
+// Función para escribir un acompañamiento al CSV
+function writeAccompanimentToCSV(accompaniment) {
+  const accompanimentsCsvPath = path.join(app.getPath('userData'), 'accompaniments.csv');
+  const fileExists = fs.existsSync(accompanimentsCsvPath);
+
+  if (!fileExists) {
+    const headers = 'Nombre,Precio\n';
+    fs.writeFileSync(accompanimentsCsvPath, headers, 'utf8');
+  }
+
+  const accompanimentData = `${accompaniment.name},${accompaniment.price}\n`;
+  fs.appendFileSync(accompanimentsCsvPath, accompanimentData, 'utf8');
+}
+
+ipcMain.on('add-accompaniment', (event, accompaniment) => {
+  writeAccompanimentToCSV(accompaniment);
+  event.reply('accompaniment-added', 'Acompañamiento agregado exitosamente');
+});
+
+ipcMain.handle('get-accompaniments', async () => {
+  const accompaniments = await readAccompanimentsFromCSV();
+  return accompaniments;
 });

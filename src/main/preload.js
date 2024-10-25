@@ -1,24 +1,21 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Exponemos ipcRenderer de manera segura a través de window.electron
 contextBridge.exposeInMainWorld('electron', {
   send: (channel, data) => {
-    let validChannels = ['add-pizza', 'save-order', 'print-receipt'];
+    let validChannels = ['add-pizza', 'save-order', 'print-receipt', 'save-promotion', 'add-accompaniment'];
     if (validChannels.includes(channel)) {
       ipcRenderer.send(channel, data);
     }
   },
   invoke: (channel, data) => {
-    let validChannels = ['get-pizzas', 'load-orders'];
+    let validChannels = ['get-pizzas', 'load-orders', 'get-promotions', 'get-accompaniments'];
     if (validChannels.includes(channel)) {
       return ipcRenderer.invoke(channel, data);
     }
   },
-  // Exponemos la función `on` para escuchar eventos desde el proceso principal
   on: (channel, func) => {
-    let validChannels = ['receipt-printed'];
+    let validChannels = ['receipt-printed', 'promotion-saved', 'accompaniment-added'];
     if (validChannels.includes(channel)) {
-      // Vinculamos la función de escucha al canal
       ipcRenderer.on(channel, (event, ...args) => func(event, ...args));
     }
   }

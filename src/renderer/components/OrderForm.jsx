@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 
 function OrderForm() {
   const [pizzas, setPizzas] = useState([]);
+  const [accompaniments, setAccompaniments] = useState([]);
+  const [selectedAccompaniment, setSelectedAccompaniment] = useState('');
+  const [accompanimentQuantity, setAccompanimentQuantity] = useState(1);
+  const [promotions, setPromotions] = useState([
+    { name: 'Promoción M', price: 8500, size: 'medium' },
+    { name: 'Promoción L', price: 12000, size: 'large' },
+  ]);
+  const [selectedPromotion, setSelectedPromotion] = useState('');
   const [selectedPizza, setSelectedPizza] = useState('');
   const [secondHalfPizza, setSecondHalfPizza] = useState('');
   const [size, setSize] = useState('medium');
@@ -10,40 +18,54 @@ function OrderForm() {
   const [orderType, setOrderType] = useState('local');
   const [orderItems, setOrderItems] = useState([]);
 
-  // Cargar las pizzas al montar el componente
   useEffect(() => {
-    console.log('Invocando get-pizzas para cargar las pizzas...');
-    window.electron.invoke('get-pizzas')
-      .then((loadedPizzas) => {
-        console.log('Pizzas cargadas desde el CSV:', loadedPizzas);
-        setPizzas(loadedPizzas);
-      })
-      .catch((error) => {
-        console.error('Error al cargar las pizzas:', error);
-      });
+    if (window.electron && window.electron.invoke) {
+      window.electron.invoke('get-pizzas')
+        .then((loadedPizzas) => setPizzas(loadedPizzas))
+        .catch((error) => console.error('Error al cargar las pizzas:', error));
+
+      window.electron.invoke('get-accompaniments')
+        .then((loadedAccompaniments) => setAccompaniments(loadedAccompaniments))
+        .catch((error) => console.error('Error al cargar los acompañamientos:', error));
+    } else {
+      console.error('window.electron o window.electron.invoke no está definido');
+    }
   }, []);
 
   const handleAddToOrder = (e) => {
     e.preventDefault();
-    console.log('Pizza seleccionada:', selectedPizza, 'Segunda mitad:', secondHalfPizza);
 
-    const firstPizza = pizzas.find((p) => p.Nombre === selectedPizza);
-    const secondPizza = pizzas.find((p) => p.Nombre === secondHalfPizza);
     let price = 0;
 
-    if (firstPizza && secondHalfPizza && size) {
-      // Calcular el precio de una pizza por mitades (promedio de ambas)
-      const firstPrice = size === 'medium' ? parseFloat(firstPizza.PrecioMediano) : parseFloat(firstPizza.PrecioFamiliar);
-      const secondPrice = size === 'medium' ? parseFloat(secondPizza.PrecioMediano) : parseFloat(secondPizza.PrecioFamiliar);
-      price = ((firstPrice + secondPrice) / 2) * quantity;
-    } else if (firstPizza) {
-      // Calcular el precio de una pizza entera
-      price = (size === 'medium' ? parseFloat(firstPizza.PrecioMediano) : parseFloat(firstPizza.PrecioFamiliar)) * quantity;
+    if (selectedPromotion) {
+      const promotion = promotions.find((p) => p.name === selectedPromotion);
+      if (promotion) {
+        const validPizza = pizzas.find(
+          (p) => p.Nombre === selectedPizza && p.ingredients.length === 3
+        );
+        if (!validPizza) {
+          alert('La promoción solo aplica a pizzas con exactamente 3 ingredientes.');
+          return;
+        }
+
+        price = parseFloat(promotion.price);
+        setSize(promotion.size);
+      }
+    } else {
+      const firstPizza = pizzas.find((p) => p.Nombre === selectedPizza);
+      const secondPizza = pizzas.find((p) => p.Nombre === secondHalfPizza);
+
+      if (firstPizza && secondHalfPizza && size) {
+        const firstPrice = size === 'medium' ? parseFloat(firstPizza.PrecioMediano) : parseFloat(firstPizza.PrecioFamiliar);
+        const secondPrice = size === 'medium' ? parseFloat(secondPizza.PrecioMediano) : parseFloat(secondPizza.PrecioFamiliar);
+        price = ((firstPrice + secondPrice) / 2) * quantity;
+      } else if (firstPizza) {
+        price = (size === 'medium' ? parseFloat(firstPizza.PrecioMediano) : parseFloat(firstPizza.PrecioFamiliar)) * quantity;
+      }
     }
 
-    console.log('Precio calculado:', price);
-
     const newItem = {
+      promotion: selectedPromotion || null,
       pizza: selectedPizza,
       secondHalf: secondHalfPizza || null,
       size,
@@ -51,20 +73,34 @@ function OrderForm() {
       price,
     };
 
-    setOrderItems((prevItems) => {
-      console.log('Items anteriores del pedido:', prevItems);
-      const newItems = [...prevItems, newItem];
-      console.log('Nuevo estado de items del pedido:', newItems);
-      return newItems;
-    });
-
-    console.log('Nuevo pedido agregado:', newItem);
-
-    // Limpiar los campos después de agregar
+    setOrderItems((prevItems) => [...prevItems, newItem]);
     setSelectedPizza('');
     setSecondHalfPizza('');
     setSize('medium');
     setQuantity(1);
+    setSelectedPromotion('');
+  };
+
+  const handleAddAccompanimentToOrder = () => {
+    if (!selectedAccompaniment) {
+      alert('Selecciona un acompañamiento.');
+      return;
+    }
+
+    const accompaniment = accompaniments.find((acc) => acc.name === selectedAccompaniment);
+
+    if (accompaniment) {
+      const price = accompaniment.price * accompanimentQuantity;
+      const newItem = {
+        accompaniment: selectedAccompaniment,
+        quantity: accompanimentQuantity,
+        price,
+      };
+
+      setOrderItems((prevItems) => [...prevItems, newItem]);
+      setSelectedAccompaniment('');
+      setAccompanimentQuantity(1);
+    }
   };
 
   const handleSubmitOrder = () => {
@@ -72,30 +108,40 @@ function OrderForm() {
     const orderData = {
       client,
       items: orderItems,
-      orderType, // Tipo de pedido: local, retiro, delivery
-      date: new Date().toLocaleString(), // Fecha del pedido
+      orderType,
+      date: new Date().toLocaleString(),
       total,
     };
 
-    console.log('Guardando pedido con los siguientes datos:', orderData);
-
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
-
-    window.electron.on('receipt-printed', (event, filePath) => {
-      console.log(`Recibo generado y guardado en: ${filePath}`);
-      alert(`Recibo guardado en: ${filePath}`);
-    });
-
     setClient('');
     setOrderItems([]);
-    setOrderType('local'); // Restablecer el tipo de pedido a "local" por defecto
+    setOrderType('local');
   };
 
   return (
     <div className="order-form mx-auto max-w-lg">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
+
       <form onSubmit={handleAddToOrder} className="bg-white p-8 rounded-lg shadow-lg w-full mb-6 border-t-4 border-green-600">
+        <div className="mb-6">
+          <label htmlFor="promotion" className="block text-gray-700 font-semibold">Seleccionar Promoción:</label>
+          <select
+            id="promotion"
+            value={selectedPromotion}
+            onChange={(e) => setSelectedPromotion(e.target.value)}
+            className="w-full mt-2 p-3 border border-green-500 rounded-md"
+          >
+            <option value="">Sin promoción</option>
+            {promotions.map((promotion) => (
+              <option key={promotion.name} value={promotion.name}>
+                {promotion.name} - ${promotion.price}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="mb-6">
           <label htmlFor="pizza" className="block text-gray-700 font-semibold">Seleccionar Pizza:</label>
           <select
@@ -108,30 +154,60 @@ function OrderForm() {
             <option value="">Seleccionar pizza...</option>
             {pizzas.map((pizza) => (
               <option key={pizza.Nombre} value={pizza.Nombre}>
+                {pizza.Nombre} - Ingredientes: {Array.isArray(pizza.ingredients) ? pizza.ingredients.join(', ') : 'No disponible'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-6">
+          <label htmlFor="second-half" className="block text-gray-700 font-semibold">Segunda Mitad (Opcional):</label>
+          <select
+            id="second-half"
+            value={secondHalfPizza}
+            onChange={(e) => setSecondHalfPizza(e.target.value)}
+            className="w-full mt-2 p-3 border border-green-500 rounded-md"
+          >
+            <option value="">Seleccionar segunda mitad...</option>
+            {pizzas.map((pizza) => (
+              <option key={pizza.Nombre} value={pizza.Nombre}>
                 {pizza.Nombre}
               </option>
             ))}
           </select>
         </div>
 
-        {size !== 'small' && (
-          <div className="mb-6">
-            <label htmlFor="second-half" className="block text-gray-700 font-semibold">Segunda Mitad (Opcional):</label>
-            <select
-              id="second-half"
-              value={secondHalfPizza}
-              onChange={(e) => setSecondHalfPizza(e.target.value)}
-              className="w-full mt-2 p-3 border border-green-500 rounded-md"
-            >
-              <option value="">Seleccionar segunda mitad...</option>
-              {pizzas.map((pizza) => (
-                <option key={pizza.Nombre} value={pizza.Nombre}>
-                  {pizza.Nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <div className="mb-6">
+          <label htmlFor="accompaniment" className="block text-gray-700 font-semibold">Seleccionar Acompañamiento:</label>
+          <select
+            id="accompaniment"
+            value={selectedAccompaniment}
+            onChange={(e) => setSelectedAccompaniment(e.target.value)}
+            className="w-full mt-2 p-3 border border-green-500 rounded-md"
+          >
+            <option value="">Seleccionar acompañamiento...</option>
+            {accompaniments.map((acc) => (
+              <option key={acc.name} value={acc.name}>
+                {acc.name} - ${acc.price}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            value={accompanimentQuantity}
+            onChange={(e) => setAccompanimentQuantity(e.target.value)}
+            min="1"
+            className="w-full mt-2 p-3 border border-green-500 rounded-md"
+            placeholder="Cantidad"
+          />
+          <button
+            type="button"
+            onClick={handleAddAccompanimentToOrder}
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg py-2 mt-3 transition duration-200 shadow-md"
+          >
+            Agregar Acompañamiento al Pedido
+          </button>
+        </div>
 
         <div className="mb-6">
           <label htmlFor="size" className="block text-gray-700 font-semibold">Tamaño:</label>
@@ -141,6 +217,7 @@ function OrderForm() {
             onChange={(e) => setSize(e.target.value)}
             className="w-full mt-2 p-3 border border-green-500 rounded-md"
             required
+            disabled={Boolean(selectedPromotion)}
           >
             <option value="medium">Mediano</option>
             <option value="large">Familiar</option>
@@ -185,7 +262,7 @@ function OrderForm() {
         <ul>
           {orderItems.map((item, index) => (
             <li key={index}>
-              {item.quantity} x {item.pizza}{item.secondHalf ? ` / ${item.secondHalf}` : ''} ({item.size}) - ${item.price.toFixed(2)}
+              {item.quantity} x {item.pizza || item.accompaniment} {item.secondHalf ? ` / ${item.secondHalf}` : ''} ({item.size || ''}) - ${item.price.toFixed(2)}
             </li>
           ))}
         </ul>
