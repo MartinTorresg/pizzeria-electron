@@ -41,6 +41,12 @@ function App() {
               Agregar Pizza
             </button>
             <button
+              className="hover:bg-yellow-600 p-2 rounded transition duration-200 bg-yellow-500 text-white font-bold"
+              onClick={() => renderComponent(<AddAccompanimentForm onAddAccompaniment={handleAddAccompaniment} />)} // Botón para agregar acompañamientos
+            >
+              Agregar Acompañamiento
+            </button>
+            <button
               className="hover:bg-blue-600 p-2 rounded transition duration-200 bg-blue-500 text-white font-bold"
               onClick={() => renderComponent(<OrdersList />)}
             >
@@ -58,18 +64,12 @@ function App() {
             >
               Dashboard de Finanzas
             </button>
-            <button
-              className="hover:bg-yellow-600 p-2 rounded transition duration-200 bg-yellow-500 text-white font-bold"
-              onClick={() => renderComponent(<AddAccompanimentForm onAddAccompaniment={handleAddAccompaniment} />)} // Botón para agregar acompañamientos
-            >
-              Agregar Acompañamiento
-            </button>
           </div>
         </div>
       </header>
 
       <main className="flex-grow flex justify-center items-start px-4 mt-4">
-        <div className="max-w-4xl w-full">{currentComponent}</div>
+        <div className="w-full">{currentComponent}</div>
       </main>
     </div>
   );
