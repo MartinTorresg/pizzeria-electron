@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import OrderForm from './components/OrderForm';
 import AddPizzaForm from './components/AddPizzaForm';
 import OrdersList from './components/OrdersList';
-import SalesDashboard from './components/SalesDashboard'; // Importa el dashboard de ventas
-import FinanceDashboard from './components/FinanceDashboard'; // Importa el dashboard de finanzas
 import AddAccompanimentForm from './components/AddAccompanimentForm'; // Asegúrate de tener este componente
+import ProductSalesDashboard from './components/ProductSalesDashboard';
+import DateSalesDashboard from './components/DateSalesDashboard';
 
 function App() {
   const [currentComponent, setCurrentComponent] = useState(<OrderForm pizzas={[]} />);
@@ -54,13 +54,13 @@ function App() {
             </button>
             <button
               className="hover:bg-purple-600 p-2 rounded transition duration-200 bg-purple-500 text-white font-bold"
-              onClick={() => renderComponent(<SalesDashboard />)}
+              onClick={() => renderComponent(<ProductSalesDashboard />)}
             >
               Dashboard de Ventas
             </button>
             <button
               className="hover:bg-orange-600 p-2 rounded transition duration-200 bg-orange-500 text-white font-bold"
-              onClick={() => renderComponent(<FinanceDashboard />)}
+              onClick={() => renderComponent(<DateSalesDashboard />)}
             >
               Dashboard de Finanzas
             </button>

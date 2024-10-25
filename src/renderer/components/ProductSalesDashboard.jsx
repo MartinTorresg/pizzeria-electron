@@ -13,7 +13,7 @@ import {
 // Registrar las escalas y elementos que usarás
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-function SalesDashboard() {
+function ProductSalesDashboard() {
   const [salesData, setSalesData] = useState([]);
   const [totalSales, setTotalSales] = useState(0);
   const [productSales, setProductSales] = useState({});
@@ -39,17 +39,24 @@ function SalesDashboard() {
     setTotalSales(total);
 
     const productSalesCount = {};
+
+    // Contabilizar las pizzas
     sales.forEach(order => {
       order.items.forEach(item => {
-        productSalesCount[item.pizza] = (productSalesCount[item.pizza] || 0) + item.quantity;
+        if (item.pizza) { // Verificar si es un item de pizza
+          productSalesCount[item.pizza] = (productSalesCount[item.pizza] || 0) + item.quantity;
+        } else if (item.accompaniment) { // Verificar si es un acompañamiento
+          productSalesCount[item.accompaniment] = (productSalesCount[item.accompaniment] || 0) + item.quantity;
+        }
       });
     });
+
     setProductSales(productSalesCount);
   };
 
   return (
     <div className="sales-dashboard">
-      <h2 className="text-2xl font-bold">Dashboard de Ventas</h2>
+      <h2 className="text-2xl font-bold">Dashboard de Ventas de Productos</h2>
       <p>Total de Ventas: ${totalSales}</p>
 
       <h3 className="text-xl">Ventas por Producto</h3>
@@ -69,4 +76,4 @@ function SalesDashboard() {
   );
 }
 
-export default SalesDashboard;
+export default ProductSalesDashboard;

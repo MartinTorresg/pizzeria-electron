@@ -43,7 +43,7 @@ function saveImageToDisk(imageData, imageName) {
   if (!fs.existsSync(imagesPath)) {
     fs.mkdirSync(imagesPath); // Crear la carpeta si no existe
   }
-  
+
   const imagePath = path.join(imagesPath, imageName);
   const base64Data = imageData.replace(/^data:image\/png;base64,/, '').replace(/^data:image\/jpeg;base64,/, ''); // Elimina el prefijo
   fs.writeFileSync(imagePath, base64Data, 'base64'); // Guarda la imagen en disco
@@ -116,7 +116,7 @@ ipcMain.handle('get-pizzas', async () => {
 // Función para guardar pedidos en el CSV
 ipcMain.on('save-order', (event, orderData) => {
   const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv');
-  
+
   // Serializar todo el objeto orderData como JSON
   const csvContent = JSON.stringify(orderData) + '\n';
 
@@ -230,12 +230,13 @@ ipcMain.on('print-receipt', (event, orderData) => {
           <tbody>
             ${orderData.items.map(item => `
               <tr>
-                <td>${item.pizza}${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size})</td>
+                <td>${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size || ''})</td>
                 <td>${item.quantity}</td>
                 <td>$${item.price.toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
+
         </table>
 
         <p class="total">Total a pagar: $${orderData.total.toFixed(2)}</p>

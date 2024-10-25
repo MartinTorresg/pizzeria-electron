@@ -12,6 +12,8 @@ function OrderForm() {
   const [client, setClient] = useState('');
   const [orderItems, setOrderItems] = useState([]);
   const [isHalfPizza, setIsHalfPizza] = useState(false);
+  const [selectedPromotion, setSelectedPromotion] = useState('');
+  const [orderType, setOrderType] = useState('local'); // Nuevo estado para el tipo de pedido
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,7 +21,7 @@ function OrderForm() {
         if (window.electron && window.electron.invoke) {
           const loadedPizzas = await window.electron.invoke('get-pizzas');
           setPizzas(loadedPizzas);
-          
+
           const loadedAccompaniments = await window.electron.invoke('get-accompaniments');
           setAccompaniments(loadedAccompaniments);
         }
@@ -43,6 +45,7 @@ function OrderForm() {
       size,
       quantity,
       price: calculatePrice(),
+      promotion: selectedPromotion || null,
     };
 
     setOrderItems((prevItems) => [...prevItems, newItem]);
@@ -55,6 +58,7 @@ function OrderForm() {
     setSize('medium');
     setQuantity(1);
     setIsHalfPizza(false);
+    setSelectedPromotion('');
   };
 
   const calculatePrice = () => {
@@ -65,22 +69,31 @@ function OrderForm() {
     return parseFloat(basePrice) * quantity;
   };
 
+  // Al agregar un acompañamiento
   const handleAddAccompanimentToOrder = () => {
     if (!selectedAccompaniment) {
       alert('Por favor selecciona un acompañamiento.');
       return;
     }
 
+    // Encontrar el acompañamiento seleccionado
     const accompaniment = accompaniments.find(acc => acc.name === selectedAccompaniment);
-    if (!accompaniment) return;
+    if (!accompaniment) {
+      alert('Acompañamiento no encontrado.');
+      return;
+    }
 
+    // Crear el nuevo objeto de acompañamiento con el nombre correcto
     const newAccompanimentItem = {
-      accompaniment: selectedAccompaniment,
+      accompaniment: accompaniment.name, // Asegúrate de que el nombre esté aquí
       quantity: accompanimentQuantity,
       price: accompaniment.price * accompanimentQuantity,
     };
 
+    // Agregar el nuevo acompañamiento a los elementos del pedido
     setOrderItems((prevItems) => [...prevItems, newAccompanimentItem]);
+
+    // Limpiar el formulario de acompañamiento después de agregar
     setSelectedAccompaniment('');
     setAccompanimentQuantity(1);
   };
@@ -94,7 +107,7 @@ function OrderForm() {
     const orderData = {
       client,
       items: orderItems,
-      orderType: 'local',
+      orderType, // Agregar el tipo de pedido
       date: new Date().toLocaleString(),
       total,
     };
@@ -108,7 +121,7 @@ function OrderForm() {
   return (
     <div className="order-form mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
-      
+
       <div className="grid grid-cols-2 gap-4">
         {/* Primera columna: Selección de Tamaño y Pizza */}
         <div className="col-span-1">
@@ -118,19 +131,21 @@ function OrderForm() {
             <option value="large">Familiar</option>
           </select>
 
-          <h3 className="text-xl font-semibold mb-4">Seleccionar Pizza:</h3>
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            {pizzas.map((pizza) => (
-              <div key={pizza.Nombre} className={`flex flex-col items-center cursor-pointer ${selectedPizza === pizza.Nombre ? 'border-2 border-green-600' : ''}`} onClick={() => setSelectedPizza(pizza.Nombre)}>
-                <img src={pizza.image} alt={pizza.Nombre} className="w-20 h-20 object-cover mb-2" />
-                <span>{pizza.Nombre}</span>
-              </div>
-            ))}
+          <div>
+            <h3 className="text-xl font-semibold mb-4">Seleccionar Pizza:</h3>
+            <select value={selectedPizza} onChange={(e) => setSelectedPizza(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+              <option value="">Seleccionar pizza...</option>
+              {pizzas.map((pizza) => (
+                <option key={pizza.Nombre} value={pizza.Nombre}>
+                  {pizza.Nombre}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button
             type="button"
-            onClick={() => setIsHalfPizza(!isHalfPizza)} 
+            onClick={() => setIsHalfPizza(!isHalfPizza)}
             className={`w-full ${isHalfPizza ? 'bg-red-500' : 'bg-yellow-500'} hover:bg-yellow-600 text-white font-semibold rounded-lg py-2 transition duration-200`}
           >
             {isHalfPizza ? 'Quitar opción de mitades' : 'Agregar opción de mitades'}
@@ -192,6 +207,14 @@ function OrderForm() {
             Agregar Acompañamiento
           </button>
 
+          {/* Tipo de Pedido */}
+          <h3 className="text-xl font-semibold mt-6 mb-2">Tipo de Pedido:</h3>
+          <select value={orderType} onChange={(e) => setOrderType(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+            <option value="local">Comer en el local</option>
+            <option value="delivery">Delivery</option>
+            <option value="takeaway">Retiro en el local</option>
+          </select>
+
           {/* Resumen del Pedido */}
           <h3 className="text-xl font-semibold mt-6 mb-2">Resumen del Pedido:</h3>
           <div className="bg-gray-100 p-4 rounded-lg shadow-lg mb-4">
@@ -199,7 +222,7 @@ function OrderForm() {
               {orderItems.map((item, index) => (
                 <li key={index} className="flex justify-between items-center">
                   <span>
-                    {item.quantity} x {item.pizza} {item.secondHalf ? ` / ${item.secondHalf}` : ''} - ${item.price.toFixed(2)}
+                    {item.quantity} x {item.pizza || item.accompaniment} {item.secondHalf ? ` / ${item.secondHalf}` : ''} ({item.size || ''}) - ${item.price.toFixed(2)}
                   </span>
                   <button onClick={() => handleRemoveFromOrder(index)} className="text-red-500 ml-2">Eliminar</button>
                 </li>
