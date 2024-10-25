@@ -76,27 +76,26 @@ function OrderForm() {
       date: new Date().toLocaleString(), // Fecha del pedido
       total,
     };
-    
+
     console.log('Guardando pedido con los siguientes datos:', orderData);
-  
+
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
-  
+
     window.electron.on('receipt-printed', (event, filePath) => {
       console.log(`Recibo generado y guardado en: ${filePath}`);
       alert(`Recibo guardado en: ${filePath}`);
     });
-  
+
     setClient('');
     setOrderItems([]);
     setOrderType('local'); // Restablecer el tipo de pedido a "local" por defecto
   };
 
   return (
-    <div className="order-form">
+    <div className="order-form mx-auto max-w-lg">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
-
-      <form onSubmit={handleAddToOrder} className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg mb-6 border-t-4 border-green-600">
+      <form onSubmit={handleAddToOrder} className="bg-white p-8 rounded-lg shadow-lg w-full mb-6 border-t-4 border-green-600">
         <div className="mb-6">
           <label htmlFor="pizza" className="block text-gray-700 font-semibold">Seleccionar Pizza:</label>
           <select
@@ -161,25 +160,25 @@ function OrderForm() {
           />
         </div>
 
-        <div className="mb-6">
-          <label htmlFor="order-type" className="block text-gray-700 font-semibold">Tipo de Pedido:</label>
-          <select
-            id="order-type"
-            value={orderType}
-            onChange={(e) => setOrderType(e.target.value)}
-            className="w-full mt-2 p-3 border border-green-500 rounded-md"
-            required
-          >
-            <option value="local">Consumo en el Local</option>
-            <option value="pickup">Retiro en el Local</option>
-            <option value="delivery">Delivery</option>
-          </select>
-        </div>
-
         <button type="submit" className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg py-3 transition duration-200 shadow-md">
           Agregar al Pedido
         </button>
       </form>
+
+      <div className="mb-6">
+        <label htmlFor="order-type" className="block text-gray-700 font-semibold">Tipo de Pedido:</label>
+        <select
+          id="order-type"
+          value={orderType}
+          onChange={(e) => setOrderType(e.target.value)}
+          className="w-full mt-2 p-3 border border-green-500 rounded-md"
+          required
+        >
+          <option value="local">Consumo en el Local</option>
+          <option value="pickup">Retiro en el Local</option>
+          <option value="delivery">Delivery</option>
+        </select>
+      </div>
 
       <div className="order-summary bg-gray-100 p-4 rounded-lg shadow-lg">
         <h3 className="text-xl font-bold mb-4">Resumen del Pedido:</h3>

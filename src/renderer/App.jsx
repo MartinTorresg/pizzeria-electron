@@ -43,9 +43,11 @@ function App() {
       </header>
 
       {/* Contenedor principal con más tamaño y mejor centrado */}
-      <main className="flex-grow flex justify-center items-center px-4">
-        <div className="max-w-3xl w-full">{currentComponent}</div>
+      <main className="flex-grow flex justify-center items-start px-4 mt-4">
+        <div className="max-w-4xl w-full">{currentComponent}</div>
       </main>
+
+
     </div>
   );
 }

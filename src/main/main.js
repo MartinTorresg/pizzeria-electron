@@ -108,28 +108,18 @@ ipcMain.handle('get-pizzas', async () => {
 ipcMain.on('save-order', (event, orderData) => {
   const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv');
   
-  // Verifica que los datos estén completos antes de guardarlos
-  const csvContent = orderData.items.map(item => {
-    const pizza = item.pizza || 'Desconocida';
-    const size = item.size || 'Desconocido';
-    const quantity = item.quantity || 1;
-    const client = orderData.client || 'Desconocido';
-    const price = item.price || 0;
-    const orderType = orderData.orderType || 'Desconocido';
-    const date = new Date().toLocaleString();
-    
-    return `${pizza},${size},${quantity},${client},${price},${orderType},${date},En preparación\n`;
-  }).join('');
+  // Serializar todo el objeto orderData como JSON
+  const csvContent = JSON.stringify(orderData) + '\n';
 
-  // Si no existe el archivo de pedidos, lo creamos con encabezados
+  // Si no existe el archivo de pedidos, lo creamos
   if (!fs.existsSync(ordersCsvPath)) {
-    const headers = 'Pizza,Tamaño,Cantidad,Cliente,Precio,Tipo de Pedido,Fecha,Estado\n';
-    fs.writeFileSync(ordersCsvPath, headers, 'utf8');
+    fs.writeFileSync(ordersCsvPath, '', 'utf8');
   }
 
   fs.appendFileSync(ordersCsvPath, csvContent, 'utf8');
   console.log('Pedido guardado correctamente.');
 });
+
 
 // Función para cargar pedidos desde el CSV
 ipcMain.handle('load-orders', () => {
@@ -139,18 +129,14 @@ ipcMain.handle('load-orders', () => {
   if (fs.existsSync(ordersCsvPath)) {
     const content = fs.readFileSync(ordersCsvPath, 'utf8');
     const orders = content.split('\n').filter(line => line).map(line => {
-      const [pizza, size, quantity, client, price, orderType, date, status] = line.split(',');
-      return {
-        pizza,
-        size,
-        quantity,
-        client,
-        price: parseFloat(price),
-        orderType,
-        date,
-        status,
-      };
-    });
+      try {
+        return JSON.parse(line); // Deserializamos cada línea como un objeto JSON completo
+      } catch (error) {
+        console.error('Error al deserializar el pedido:', error);
+        return null;
+      }
+    }).filter(order => order); // Filtramos pedidos nulos por errores de parsing
+
     console.log('Pedidos cargados:', orders);
     return orders;
   }
