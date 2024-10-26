@@ -10,16 +10,17 @@ import {
   Legend,
 } from 'chart.js';
 
-// Registrar las escalas y elementos que usarás
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 function DateSalesDashboard() {
   const [salesData, setSalesData] = useState({});
   const [filter, setFilter] = useState('daily');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     fetchSalesData();
-  }, []);
+  }, [startDate, endDate, filter]); // Asegúrate de que la función se ejecute cuando cambian los filtros
 
   const fetchSalesData = async () => {
     const orders = await window.electron.invoke('load-orders');
@@ -31,13 +32,24 @@ function DateSalesDashboard() {
     const salesByDate = {};
 
     sales.forEach(order => {
-      const dateParts = order.date.split('-'); // Suponiendo que el formato es 'DD-MM-YYYY'
+      const dateParts = order.date.split(', ')[0].split('-'); // Separar por coma y luego por guiones
       const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`; // Cambiar a 'YYYY-MM-DD'
-
       const date = new Date(formattedDate);
+
       if (isNaN(date)) {
         console.error('Fecha inválida encontrada en el pedido:', order);
         return; // Salir si la fecha es inválida
+      }
+
+      // Filtrar por rango de fechas o por el día actual
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Establecer a medianoche para comparación
+      if (filter === 'daily' && date.toDateString() !== today.toDateString()) {
+        return; // Si no es el día actual, no lo incluimos
+      } else if (startDate && date < new Date(startDate)) {
+        return; // Si está fuera del rango, no lo incluimos
+      } else if (endDate && date > new Date(endDate)) {
+        return; // Si está fuera del rango, no lo incluimos
       }
 
       let dateKey;
@@ -86,6 +98,13 @@ function DateSalesDashboard() {
         <option value="weekly">Semanal</option>
         <option value="monthly">Mensual</option>
       </select>
+
+      <div className="mb-4">
+        <label>Desde:</label>
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="border rounded p-2 mr-2" />
+        <label>Hasta:</label>
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="border rounded p-2" />
+      </div>
 
       <div style={{ width: '80%', height: '300px', margin: '0 auto' }}>
         <Bar data={chartData} options={{

@@ -37,36 +37,6 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Función para guardar la imagen en el disco
-function saveImageToDisk(imageData, imageName) {
-  const imagesPath = path.join(app.getPath('userData'), 'images');
-  if (!fs.existsSync(imagesPath)) {
-    fs.mkdirSync(imagesPath); // Crear la carpeta si no existe
-  }
-
-  const imagePath = path.join(imagesPath, imageName);
-  const base64Data = imageData.replace(/^data:image\/png;base64,/, '').replace(/^data:image\/jpeg;base64,/, ''); // Elimina el prefijo
-  fs.writeFileSync(imagePath, base64Data, 'base64'); // Guarda la imagen en disco
-  return imagePath; // Devuelve la ruta donde se guardó la imagen
-}
-
-// Modificar la función writePizzaToCSV
-function writePizzaToCSV(pizza) {
-  const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv');
-
-  // Guardar la imagen y obtener la ruta
-  const imagePath = saveImageToDisk(pizza.image, `${pizza.name}.png`);
-
-  if (!fs.existsSync(pizzasCsvPath)) {
-    const headers = 'Nombre,PrecioMediano,PrecioFamiliar,Ingredientes,Imagen\n';
-    fs.writeFileSync(pizzasCsvPath, headers, 'utf8');
-  }
-
-  // Añadir la pizza al archivo CSV con la ruta de la imagen
-  const pizzaData = `${pizza.name},${pizza.prices.medium},${pizza.prices.large},${pizza.ingredients.join('|')},${imagePath}\n`;
-  fs.appendFileSync(pizzasCsvPath, pizzaData, 'utf8');
-}
-
 // Función para leer las pizzas del CSV desde la carpeta de datos del usuario
 function readPizzasFromCSV() {
   return new Promise((resolve, reject) => {
@@ -75,15 +45,14 @@ function readPizzasFromCSV() {
 
     if (fs.existsSync(pizzasCsvPath)) {
       fs.createReadStream(pizzasCsvPath)
-        .pipe(csv(['Nombre', 'PrecioMediano', 'PrecioFamiliar', 'Ingredientes', 'Imagen']))
+        .pipe(csv(['Nombre', 'PrecioMediano', 'PrecioFamiliar', 'Ingredientes']))
         .on('data', (data) => {
           if (data.Nombre !== 'Nombre') {
             pizzas.push({
               Nombre: data.Nombre,
-              PrecioMediano: data.PrecioMediano,
-              PrecioFamiliar: data.PrecioFamiliar,
+              PrecioMediano: parseFloat(data.PrecioMediano),
+              PrecioFamiliar: parseFloat(data.PrecioFamiliar),
               ingredients: data.Ingredientes ? data.Ingredientes.split('|') : [],
-              image: data.Imagen, // Añadir la ruta de la imagen
             });
           }
         })
@@ -94,11 +63,24 @@ function readPizzasFromCSV() {
           reject(error);
         });
     } else {
-      resolve([]);
+      resolve([]); // Devuelve un arreglo vacío si no existe el CSV
     }
   });
 }
 
+// Modificar la función writePizzaToCSV
+function writePizzaToCSV(pizza) {
+  const pizzasCsvPath = path.join(app.getPath('userData'), 'pizzas.csv');
+
+  if (!fs.existsSync(pizzasCsvPath)) {
+    const headers = 'Nombre,PrecioMediano,PrecioFamiliar,Ingredientes\n';
+    fs.writeFileSync(pizzasCsvPath, headers, 'utf8');
+  }
+
+  // Añadir la pizza al archivo CSV
+  const pizzaData = `${pizza.name},${pizza.prices.medium},${pizza.prices.large},${pizza.ingredients.join('|')}\n`;
+  fs.appendFileSync(pizzasCsvPath, pizzaData, 'utf8');
+}
 
 // Registrar el handler para agregar pizzas
 ipcMain.on('add-pizza', (event, pizza) => {

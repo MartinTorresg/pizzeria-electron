@@ -55,23 +55,66 @@ function ProductSalesDashboard() {
   };
 
   return (
-    <div className="sales-dashboard">
-      <h2 className="text-2xl font-bold">Dashboard de Ventas de Productos</h2>
-      <p>Total de Ventas: ${totalSales}</p>
+    <div className="sales-dashboard p-4">
+      <h2 className="text-xl font-bold mb-2">Dashboard de Ventas de Productos</h2>
+      <p className="text-lg">Total de Ventas: <span className="font-semibold">${totalSales}</span></p>
 
-      <h3 className="text-xl">Ventas por Producto</h3>
-      <Bar 
-        data={{
-          labels: Object.keys(productSales),
-          datasets: [{
-            label: 'Ventas',
-            data: Object.values(productSales),
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgba(75, 192, 192, 1)',
-            borderWidth: 1,
-          }],
-        }} 
-      />
+      <h3 className="text-lg font-semibold mt-4">Ventas por Producto</h3>
+      <div className="mt-2">
+        <Bar 
+          data={{
+            labels: Object.keys(productSales),
+            datasets: [{
+              label: 'Ventas',
+              data: Object.values(productSales),
+              backgroundColor: 'rgba(75, 192, 192, 0.6)',
+              borderColor: 'rgba(75, 192, 192, 1)',
+              borderWidth: 1,
+            }],
+          }} 
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  font: {
+                    size: 12,
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (tooltipItem) => {
+                    return `${tooltipItem.dataset.label}: ${tooltipItem.raw}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Productos',
+                  font: {
+                    size: 14,
+                  }
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Cantidad',
+                  font: {
+                    size: 14,
+                  }
+                },
+                beginAtZero: true
+              }
+            }
+          }}
+        />
+      </div>
     </div>
   );
 }
