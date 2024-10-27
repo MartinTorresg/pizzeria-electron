@@ -15,6 +15,7 @@ function OrderForm() {
   const [selectedPromotion, setSelectedPromotion] = useState('');
   const [orderType, setOrderType] = useState('local');
   const [validPizzas, setValidPizzas] = useState([]);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -22,9 +23,11 @@ function OrderForm() {
         if (window.electron && window.electron.invoke) {
           const loadedPizzas = await window.electron.invoke('get-pizzas');
           setPizzas(loadedPizzas);
+          console.log('Pizzas cargadas:', loadedPizzas);
 
           const loadedAccompaniments = await window.electron.invoke('get-accompaniments');
           setAccompaniments(loadedAccompaniments);
+          console.log('Acompañamientos cargados:', loadedAccompaniments);
         }
       } catch (error) {
         console.error('Error al cargar los datos:', error);
@@ -35,6 +38,7 @@ function OrderForm() {
   }, []);
 
   const handleAddAccompanimentToOrder = () => {
+    console.log('Intentando agregar acompañamiento...');
     if (!selectedAccompaniment) {
       alert('Por favor selecciona un acompañamiento.');
       return;
@@ -52,12 +56,14 @@ function OrderForm() {
       price: accompaniment.price * accompanimentQuantity,
     };
 
+    console.log('Nuevo acompañamiento agregado:', newAccompanimentItem);
     setOrderItems((prevItems) => [...prevItems, newAccompanimentItem]);
     setSelectedAccompaniment('');
     setAccompanimentQuantity(1);
   };
 
   const handlePromotionChange = (promotion) => {
+    console.log('Promoción seleccionada:', promotion);
     setSelectedPromotion(promotion);
 
     const filteredPizzas = pizzas.filter(pizza => {
@@ -65,11 +71,13 @@ function OrderForm() {
       return promotion === 'promoM' ? ingredientsCount === 3 : promotion === 'promoL' && ingredientsCount >= 2;
     });
 
+    console.log('Pizzas válidas según la promoción:', filteredPizzas);
     setValidPizzas(filteredPizzas);
     setSelectedPizza(''); // Resetear pizza seleccionada si cambian las validaciones
   };
 
   const handleAddPizzaToOrder = () => {
+    console.log('Intentando agregar pizza...');
     if (!selectedPizza) {
       alert('Por favor selecciona una pizza.');
       return;
@@ -84,6 +92,8 @@ function OrderForm() {
       promotion: selectedPromotion || null,
     };
 
+    console.log('Nuevo item de pizza agregado:', newItem);
+
     setOrderItems((prevItems) => {
       const updatedItems = [...prevItems, newItem];
 
@@ -96,6 +106,7 @@ function OrderForm() {
             quantity: 1,
             price: accompanimentItem.price,
           });
+          console.log('Acompañamiento agregado con promoción:', accompanimentItem);
         }
         // Agregar bebida
         updatedItems.push({
@@ -103,6 +114,17 @@ function OrderForm() {
           quantity: 1,
           price: 2500, // Cambia el precio a 2500
         });
+        console.log('Bebida agregada con promoción');
+      }
+
+      // Si la promoción es 'promoM', ajustamos el total a 8500
+      if (selectedPromotion === 'promoM') {
+        setTotal(8500);
+        console.log('Total ajustado para promoM:', 8500);
+      } else {
+        const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
+        setTotal(updatedTotal);
+        console.log('Total actualizado:', updatedTotal);
       }
 
       return updatedItems;
@@ -112,6 +134,7 @@ function OrderForm() {
   };
 
   const resetForm = () => {
+    console.log('Reseteando formulario...');
     setSelectedPizza('');
     setSecondHalfPizza('');
     setSize('medium');
@@ -122,35 +145,44 @@ function OrderForm() {
   };
 
   const calculatePrice = () => {
+    console.log('Calculando precio...');
     const pizza = pizzas.find(p => p.Nombre === selectedPizza);
-    if (!pizza) return 0;
+    if (!pizza) {
+      console.log('Pizza no encontrada');
+      return 0;
+    }
 
     const basePrice = size === 'medium' ? pizza.PrecioMediano : pizza.PrecioFamiliar;
-    return parseFloat(basePrice) * quantity;
+    const totalPrice = parseFloat(basePrice) * quantity;
+    console.log('Precio calculado:', totalPrice);
+    return totalPrice;
   };
 
   const handleSubmitOrder = () => {
-    const total = orderItems.reduce((sum, item) => sum + item.price, 0);
-    const iva = total * 0.19; // Suponiendo que el IVA es del 19%
     const orderData = {
-        client,
-        items: orderItems,
-        orderType,
-        date: new Date().toLocaleString(),
-        total,
-        iva: iva.toFixed(2),
-        promotion: selectedPromotion // Agregar la promoción al objeto
+      client,
+      items: orderItems,
+      orderType,
+      date: new Date().toLocaleString(),
+      total,
+      promotion: selectedPromotion // Agregar la promoción al objeto
     };
+
+    console.log('Datos del pedido a enviar:', orderData);
+    console.log('Valor total del pedido (final):', total);
 
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
     setClient('');
     setOrderItems([]);
-};
+    setTotal(0);
+  };
 
-  const total = orderItems.reduce((sum, item) => sum + item.price, 0);
-  const iva = total * 0.19; // IVA
-  const totalFinal = total + iva; // Total final con IVA
+  console.log('Valor total del pedido:', total);
+  
+  if (selectedPromotion === 'promoM' && total !== 8500) {
+    console.log('Error en el cálculo de promoción: el total debería ser 8500.');
+  }
 
   return (
     <div className="order-form mx-auto p-4">
@@ -280,16 +312,8 @@ function OrderForm() {
           <table className="min-w-full bg-white shadow-md rounded-lg">
             <tbody>
               <tr>
-                <td className="py-2 px-4 font-bold">Subtotal:</td>
-                <td className="py-2 px-4">${total.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td className="py-2 px-4 font-bold">IVA (19%):</td>
-                <td className="py-2 px-4">${iva.toFixed(2)}</td>
-              </tr>
-              <tr>
                 <td className="py-2 px-4 font-bold">Total a pagar:</td>
-                <td className="py-2 px-4">${totalFinal.toFixed(2)}</td>
+                <td className="py-2 px-4">${total.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
