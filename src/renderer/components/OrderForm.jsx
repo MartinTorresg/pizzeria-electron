@@ -13,7 +13,7 @@ function OrderForm() {
   const [orderItems, setOrderItems] = useState([]);
   const [isHalfPizza, setIsHalfPizza] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState('');
-  const [orderType, setOrderType] = useState('local'); // Nuevo estado para el tipo de pedido
+  const [orderType, setOrderType] = useState('local');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,31 +69,25 @@ function OrderForm() {
     return parseFloat(basePrice) * quantity;
   };
 
-  // Al agregar un acompañamiento
   const handleAddAccompanimentToOrder = () => {
     if (!selectedAccompaniment) {
       alert('Por favor selecciona un acompañamiento.');
       return;
     }
 
-    // Encontrar el acompañamiento seleccionado
     const accompaniment = accompaniments.find(acc => acc.name === selectedAccompaniment);
     if (!accompaniment) {
       alert('Acompañamiento no encontrado.');
       return;
     }
 
-    // Crear el nuevo objeto de acompañamiento con el nombre correcto
     const newAccompanimentItem = {
-      accompaniment: accompaniment.name, // Asegúrate de que el nombre esté aquí
+      accompaniment: accompaniment.name,
       quantity: accompanimentQuantity,
       price: accompaniment.price * accompanimentQuantity,
     };
 
-    // Agregar el nuevo acompañamiento a los elementos del pedido
     setOrderItems((prevItems) => [...prevItems, newAccompanimentItem]);
-
-    // Limpiar el formulario de acompañamiento después de agregar
     setSelectedAccompaniment('');
     setAccompanimentQuantity(1);
   };
@@ -104,12 +98,14 @@ function OrderForm() {
 
   const handleSubmitOrder = () => {
     const total = orderItems.reduce((sum, item) => sum + item.price, 0);
+    const iva = total * 0.19; // Suponiendo que el IVA es del 19%
     const orderData = {
       client,
       items: orderItems,
-      orderType, // Agregar el tipo de pedido
+      orderType,
       date: new Date().toLocaleString(),
       total,
+      iva: iva.toFixed(2), // Añadir IVA al objeto
     };
 
     window.electron.send('save-order', orderData);
@@ -231,6 +227,9 @@ function OrderForm() {
           </div>
           <p className="text-xl font-bold mt-4">
             Total: ${orderItems.reduce((sum, item) => sum + item.price, 0).toFixed(2)}
+          </p>
+          <p className="text-xl font-bold mt-4">
+            IVA (19%): ${(orderItems.reduce((sum, item) => sum + item.price, 0) * 0.19).toFixed(2)}
           </p>
           <div className="client-info mt-6">
             <label htmlFor="client" className="block text-gray-700 font-semibold">Cliente:</label>

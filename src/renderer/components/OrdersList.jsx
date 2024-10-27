@@ -4,6 +4,8 @@ function OrdersList() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // Inicializar al mes actual
+  const [filteredOrders, setFilteredOrders] = useState([]);
 
   useEffect(() => {
     console.log('Invocando load-orders para cargar los pedidos...');
@@ -11,11 +13,22 @@ function OrdersList() {
       .then((loadedOrders) => {
         console.log('Pedidos cargados desde el CSV:', loadedOrders);
         setOrders(loadedOrders);
+        filterOrdersByMonth(loadedOrders, selectedMonth); // Filtrar al cargar
       })
       .catch((error) => {
         console.error('Error al cargar los pedidos:', error);
       });
   }, []);
+
+  const filterOrdersByMonth = (orders, month) => {
+    const filtered = orders.filter(order => {
+      const orderDateParts = order.date.split(',')[0].split('-'); // Divide la fecha
+      const orderDate = new Date(orderDateParts[2], orderDateParts[1] - 1, orderDateParts[0]); // Crea un objeto Date
+      return orderDate.getMonth() + 1 === month; // Comparar mes
+    });
+    console.log(`Pedidos filtrados para el mes ${month}:`, filtered); // Para depuración
+    setFilteredOrders(filtered);
+  };
 
   const handleOrderClick = (order) => {
     console.log('Pedido seleccionado antes de abrir modal:', JSON.stringify(order, null, 2));
@@ -28,9 +41,44 @@ function OrdersList() {
     setSelectedOrder(null);
   };
 
+  const handleGeneratePDF = () => {
+    console.log('Generando PDF para los pedidos del mes:', filteredOrders);
+    if (filteredOrders.length > 0) {
+      window.electron.send('generate-pdf', { orders: filteredOrders }); // Envía los pedidos filtrados para generar el PDF
+    } else {
+      console.log('No hay pedidos para generar el PDF.');
+      alert('No hay pedidos para el mes seleccionado.');
+    }
+  };
+
   return (
     <div className="orders-list mx-auto max-w-4xl">
       <h2 className="text-3xl font-bold mb-4 text-center text-green-700">Gestión de Pedidos</h2>
+
+      {/* Selector de Mes y Botón de Generar PDF */}
+      <div className="flex justify-between mb-4">
+        <div className="flex items-center">
+          <label className="block mb-2">Seleccionar Mes:</label>
+          <select value={selectedMonth} onChange={(e) => {
+            const month = parseInt(e.target.value);
+            setSelectedMonth(month);
+            filterOrdersByMonth(orders, month); // Filtrar pedidos cada vez que se cambia el mes
+          }} className="border rounded p-2 ml-2">
+            {[...Array(12)].map((_, index) => (
+              <option key={index} value={index + 1}>
+                {new Date(0, index).toLocaleString('default', { month: 'long' })}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={handleGeneratePDF}
+          className="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-4 rounded"
+        >
+          Generar PDF
+        </button>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white shadow-md rounded-lg">
           <thead>

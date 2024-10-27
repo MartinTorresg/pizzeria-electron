@@ -2,6 +2,7 @@ const { dialog, app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const csv = require('csv-parser');
+const pdf = require('html-pdf');
 
 let win;
 
@@ -146,90 +147,91 @@ ipcMain.on('print-receipt', (event, orderData) => {
 
   // Generamos el HTML con estilo inline para asegurarnos de que se apliquen los estilos
   const receiptHTML = `
-    <html>
-      <head>
-        <title>Boleta</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            width: 300px;
-            margin: 0 auto;
-            text-align: center;
-            color: #000;
-          }
-          h1 {
-            font-size: 18px;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 5px;
-          }
-          p {
-            margin: 5px 0;
-          }
-          .ticket-header {
-            font-weight: bold;
-            margin-bottom: 10px;
-          }
-          .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          .items-table th, .items-table td {
-            text-align: left;
-            padding: 5px 0;
-            border-bottom: 1px dashed #000;
-          }
-          .total {
-            font-weight: bold;
-            margin-top: 15px;
-            font-size: 16px;
-            border-top: 2px solid #000;
-            padding-top: 10px;
-          }
-          .footer {
-            font-size: 12px;
-            margin-top: 20px;
-            border-top: 1px solid #000;
-            padding-top: 10px;
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Ristorante Pizzeria</h1>
-        <p class="ticket-header">Cliente: ${orderData.client}</p>
-        <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
+<html>
+  <head>
+    <title>Boleta</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        width: 300px;
+        margin: 0 auto;
+        text-align: center;
+        color: #000;
+      }
+      h1 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 5px;
+      }
+      p {
+        margin: 5px 0;
+      }
+      .ticket-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+      }
+      .items-table th, .items-table td {
+        text-align: left;
+        padding: 5px 0;
+        border-bottom: 1px dashed #000;
+      }
+      .total {
+        font-weight: bold;
+        margin-top: 15px;
+        font-size: 16px;
+        border-top: 2px solid #000;
+        padding-top: 10px;
+      }
+      .footer {
+        font-size: 12px;
+        margin-top: 20px;
+        border-top: 1px solid #000;
+        padding-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Ristorante Pizzeria</h1>
+    <p class="ticket-header">Cliente: ${orderData.client}</p>
+    <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
 
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Cant.</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${orderData.items.map(item => `
-              <tr>
-                <td>${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size || ''})</td>
-                <td>${item.quantity}</td>
-                <td>$${item.price.toFixed(2)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Cant.</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${orderData.items.map(item => `
+          <tr>
+            <td>${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size || ''})</td>
+            <td>${item.quantity}</td>
+            <td>$${item.price.toFixed(2)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
 
-        </table>
+    <p class="total">Subtotal: $${orderData.total.toFixed(2)}</p>
+    <p class="total">IVA (19%): ${(orderData.total * 0.19).toFixed(2)}</p>
+    <p class="total">Total a pagar: $${(orderData.total + orderData.total * 0.19).toFixed(2)}</p>
 
-        <p class="total">Total a pagar: $${orderData.total.toFixed(2)}</p>
-
-        <div class="footer">
-          <p>¡Gracias por su compra!</p>
-          <p>Ristorante Pizzeria</p>
-        </div>
-      </body>
-    </html>
-  `;
+    <div class="footer">
+      <p>¡Gracias por su compra!</p>
+      <p>Ristorante Pizzeria</p>
+    </div>
+  </body>
+</html>
+`;
 
   // Cargamos el HTML generado directamente en la ventana
   win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`);
@@ -252,6 +254,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
       win.close();
     });
   });
+
 });
 
 // Función para leer los acompañamientos del CSV
@@ -306,3 +309,106 @@ ipcMain.handle('get-accompaniments', async () => {
   const accompaniments = await readAccompanimentsFromCSV();
   return accompaniments;
 });
+
+ipcMain.on('generate-pdf', (event, { orders }) => {
+  console.log('Generando PDF para los pedidos del mes:', orders);
+
+  if (orders.length === 0) {
+    console.log('No hay pedidos para generar el PDF.');
+    event.reply('pdf-generated', 'No hay pedidos para generar el PDF.');
+    return;
+  }
+
+  // Crea una ventana invisible para la generación del PDF
+  const win = new BrowserWindow({ show: false });
+
+  // Generamos el HTML para el PDF
+  const receiptHTML = `
+<html>
+  <head>
+    <title>Resumen de Ventas del Mes</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        margin: 0 auto;
+        color: #000;
+      }
+      h1 {
+        text-align: center;
+        font-size: 18px;
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+      th, td {
+        border: 1px solid #000;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      .total {
+        font-weight: bold;
+        margin-top: 20px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Resumen de Ventas</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Fecha</th>
+          <th>Productos</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${orders.map(order => `
+          <tr>
+            <td>${order.client}</td>
+            <td>${order.date}</td>
+            <td>
+              ${order.items.map(item => `
+                ${item.pizza || item.accompaniment} ${item.secondHalf ? `/ ${item.secondHalf}` : ''} (${item.size}) - Cantidad: ${item.quantity} - Precio: $${item.price.toFixed(2)}<br>
+              `).join('')}
+            </td>
+            <td>$${order.total.toFixed(2)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <p class="total">Total Ventas del Mes: $${orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}</p>
+  </body>
+</html>
+`;
+
+  // Cargamos el HTML generado en la ventana
+  win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`);
+
+  // Una vez que la página HTML se cargue, mostramos el cuadro de diálogo de impresión
+  win.webContents.on('did-finish-load', () => {
+    console.log('Resumen cargado, mostrando cuadro de diálogo de impresión.');
+
+    win.webContents.print({
+      silent: false,  // Mostrar el cuadro de diálogo de impresión
+      printBackground: true, // Imprimir el fondo si es necesario
+    }, (success, errorType) => {
+      if (!success) {
+        console.error('Error al imprimir:', errorType);
+      } else {
+        console.log('Impresión completada.');
+      }
+      win.close(); // Cerrar la ventana después de imprimir
+    });
+  });
+});
+
