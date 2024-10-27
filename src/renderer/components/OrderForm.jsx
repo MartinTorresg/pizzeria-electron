@@ -117,10 +117,13 @@ function OrderForm() {
         console.log('Bebida agregada con promoción');
       }
 
-      // Si la promoción es 'promoM', ajustamos el total a 8500
+      // Ajustar el total según la promoción seleccionada
       if (selectedPromotion === 'promoM') {
         setTotal(8500);
         console.log('Total ajustado para promoM:', 8500);
+      } else if (selectedPromotion === 'promoL') {
+        setTotal(12500); // Fijamos el total en 12500 para la promoL
+        console.log('Total ajustado para promoL:', 12500);
       } else {
         const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
         setTotal(updatedTotal);
@@ -131,6 +134,26 @@ function OrderForm() {
     });
     
     resetForm();
+  };
+
+  const handleRemoveFromOrder = (index) => {
+    setOrderItems((prevItems) => {
+      const updatedItems = prevItems.filter((_, i) => i !== index);
+      // Recalcular total después de eliminar el elemento
+      const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
+
+      // Reajustar el total según la promoción, si aplica
+      if (selectedPromotion === 'promoM') {
+        setTotal(8500);
+      } else if (selectedPromotion === 'promoL') {
+        setTotal(12500);
+      } else {
+        setTotal(updatedTotal);
+      }
+      
+      console.log(`Elemento eliminado. Nuevo total: ${total}`);
+      return updatedItems;
+    });
   };
 
   const resetForm = () => {
@@ -180,8 +203,8 @@ function OrderForm() {
 
   console.log('Valor total del pedido:', total);
   
-  if (selectedPromotion === 'promoM' && total !== 8500) {
-    console.log('Error en el cálculo de promoción: el total debería ser 8500.');
+  if (selectedPromotion === 'promoL' && total !== 12500) {
+    console.log('Error en el cálculo de promoción: el total debería ser 12500.');
   }
 
   return (
