@@ -114,6 +114,10 @@ function OrderForm() {
     setOrderItems([]);
   };
 
+  const total = orderItems.reduce((sum, item) => sum + item.price, 0);
+  const iva = total * 0.19; // IVA
+  const totalFinal = total + iva; // Total final con IVA
+
   return (
     <div className="order-form mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
@@ -225,12 +229,22 @@ function OrderForm() {
               ))}
             </ul>
           </div>
-          <p className="text-xl font-bold mt-4">
-            Total: ${orderItems.reduce((sum, item) => sum + item.price, 0).toFixed(2)}
-          </p>
-          <p className="text-xl font-bold mt-4">
-            IVA (19%): ${(orderItems.reduce((sum, item) => sum + item.price, 0) * 0.19).toFixed(2)}
-          </p>
+          <table className="min-w-full bg-white shadow-md rounded-lg">
+            <tbody>
+              <tr>
+                <td className="py-2 px-4 font-bold">Subtotal:</td>
+                <td className="py-2 px-4">${total.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-4 font-bold">IVA (19%):</td>
+                <td className="py-2 px-4">${iva.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-4 font-bold">Total a pagar:</td>
+                <td className="py-2 px-4">${totalFinal.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
           <div className="client-info mt-6">
             <label htmlFor="client" className="block text-gray-700 font-semibold">Cliente:</label>
             <input

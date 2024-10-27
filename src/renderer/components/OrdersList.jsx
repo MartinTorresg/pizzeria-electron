@@ -12,13 +12,20 @@ function OrdersList() {
     window.electron.invoke('load-orders')
       .then((loadedOrders) => {
         console.log('Pedidos cargados desde el CSV:', loadedOrders);
-        setOrders(loadedOrders);
-        filterOrdersByMonth(loadedOrders, selectedMonth); // Filtrar al cargar
+        // Ordenar los pedidos por fecha (más reciente primero)
+        const sortedOrders = loadedOrders.sort((a, b) => {
+          const dateA = new Date(a.date.split(',')[0].split('-').reverse().join('-')); // Convierte a formato YYYY-MM-DD
+          const dateB = new Date(b.date.split(',')[0].split('-').reverse().join('-'));
+          return dateB - dateA; // Ordenar en orden descendente
+        });
+        setOrders(sortedOrders);
+        filterOrdersByMonth(sortedOrders, selectedMonth); // Filtrar después de ordenar
       })
       .catch((error) => {
         console.error('Error al cargar los pedidos:', error);
       });
   }, []);
+  
 
   const filterOrdersByMonth = (orders, month) => {
     const filtered = orders.filter(order => {

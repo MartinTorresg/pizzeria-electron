@@ -146,7 +146,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
   const win = new BrowserWindow({ show: false });
 
   // Generamos el HTML con estilo inline para asegurarnos de que se apliquen los estilos
-  const receiptHTML = `
+const receiptHTML = `
 <html>
   <head>
     <title>Boleta</title>
@@ -156,7 +156,6 @@ ipcMain.on('print-receipt', (event, orderData) => {
         font-size: 14px;
         width: 300px;
         margin: 0 auto;
-        text-align: center;
         color: #000;
       }
       h1 {
@@ -164,13 +163,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
         margin-bottom: 10px;
         border-bottom: 2px solid #000;
         padding-bottom: 5px;
-      }
-      p {
-        margin: 5px 0;
-      }
-      .ticket-header {
-        font-weight: bold;
-        margin-bottom: 10px;
+        text-align: center;
       }
       .items-table {
         width: 100%;
@@ -179,7 +172,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
       }
       .items-table th, .items-table td {
         text-align: left;
-        padding: 5px 0;
+        padding: 5px;
         border-bottom: 1px dashed #000;
       }
       .total {
@@ -192,8 +185,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
       .footer {
         font-size: 12px;
         margin-top: 20px;
-        border-top: 1px solid #000;
-        padding-top: 10px;
+        text-align: center;
       }
     </style>
   </head>
@@ -221,9 +213,22 @@ ipcMain.on('print-receipt', (event, orderData) => {
       </tbody>
     </table>
 
-    <p class="total">Subtotal: $${orderData.total.toFixed(2)}</p>
-    <p class="total">IVA (19%): ${(orderData.total * 0.19).toFixed(2)}</p>
-    <p class="total">Total a pagar: $${(orderData.total + orderData.total * 0.19).toFixed(2)}</p>
+    <table class="items-table">
+      <tbody>
+        <tr>
+          <td class="total">Subtotal:</td>
+          <td class="total">$${orderData.total.toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td class="total">IVA (19%):</td>
+          <td class="total">$${(orderData.total * 0.19).toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td class="total">Total a pagar:</td>
+          <td class="total">$${(orderData.total + orderData.total * 0.19).toFixed(2)}</td>
+        </tr>
+      </tbody>
+    </table>
 
     <div class="footer">
       <p>¡Gracias por su compra!</p>
@@ -232,6 +237,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
   </body>
 </html>
 `;
+
 
   // Cargamos el HTML generado directamente en la ventana
   win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`);
