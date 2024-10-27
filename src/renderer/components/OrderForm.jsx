@@ -58,6 +58,7 @@ function OrderForm() {
 
     console.log('Nuevo acompañamiento agregado:', newAccompanimentItem);
     setOrderItems((prevItems) => [...prevItems, newAccompanimentItem]);
+    setTotal((prevTotal) => prevTotal + newAccompanimentItem.price); // Agregar al total
     setSelectedAccompaniment('');
     setAccompanimentQuantity(1);
   };
