@@ -146,98 +146,72 @@ ipcMain.on('print-receipt', (event, orderData) => {
   const win = new BrowserWindow({ show: false });
 
   // Generamos el HTML con estilo inline para asegurarnos de que se apliquen los estilos
-const receiptHTML = `
-<html>
-  <head>
-    <title>Boleta</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        width: 300px;
-        margin: 0 auto;
-        color: #000;
-      }
-      h1 {
-        font-size: 18px;
-        margin-bottom: 10px;
-        border-bottom: 2px solid #000;
-        padding-bottom: 5px;
-        text-align: center;
-      }
-      .items-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 15px 0;
-      }
-      .items-table th, .items-table td {
-        text-align: left;
-        padding: 5px;
-        border-bottom: 1px dashed #000;
-      }
-      .total {
-        font-weight: bold;
-        margin-top: 15px;
-        font-size: 16px;
-        border-top: 2px solid #000;
-        padding-top: 10px;
-      }
-      .footer {
-        font-size: 12px;
-        margin-top: 20px;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Ristorante Pizzeria</h1>
-    <p class="ticket-header">Cliente: ${orderData.client}</p>
-    <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
-
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Cant.</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${orderData.items.map(item => `
+  const receiptHTML = `
+  <html>
+    <head>
+      <title>Pedido para Cocina</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 14px;
+          width: 300px;
+          margin: 0 auto;
+          color: #000;
+        }
+        h1 {
+          font-size: 18px;
+          margin-bottom: 10px;
+          border-bottom: 2px solid #000;
+          padding-bottom: 5px;
+          text-align: center;
+        }
+        .items-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 15px 0;
+        }
+        .items-table th, .items-table td {
+          text-align: left;
+          padding: 5px;
+          border-bottom: 1px dashed #000;
+        }
+        .footer {
+          font-size: 12px;
+          margin-top: 20px;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Pedido para Cocina</h1>
+      <p class="ticket-header">Cliente: ${orderData.client || 'No especificado'}</p>
+      <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
+      <p class="ticket-header">Tipo de Pedido: ${orderData.orderType}</p>
+  
+      <table class="items-table">
+        <thead>
           <tr>
-            <td>${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size || ''})</td>
-            <td>${item.quantity}</td>
-            <td>$${item.price.toFixed(2)}</td>
+            <th>Item</th>
+            <th>Cant.</th>
           </tr>
-        `).join('')}
-      </tbody>
-    </table>
-
-    <table class="items-table">
-      <tbody>
-        <tr>
-          <td class="total">Subtotal:</td>
-          <td class="total">$${orderData.total.toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td class="total">IVA (19%):</td>
-          <td class="total">$${(orderData.total * 0.19).toFixed(2)}</td>
-        </tr>
-        <tr>
-          <td class="total">Total a pagar:</td>
-          <td class="total">$${(orderData.total + orderData.total * 0.19).toFixed(2)}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="footer">
-      <p>¡Gracias por su compra!</p>
-      <p>Ristorante Pizzeria</p>
-    </div>
-  </body>
-</html>
-`;
-
+        </thead>
+        <tbody>
+          ${orderData.items.map(item => `
+            <tr>
+              <td>${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size || ''})</td>
+              <td>${item.quantity}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+  
+      <div class="footer">
+        <p>Este pedido es para uso interno de cocina</p>
+        <p>Ristorante Pizzeria</p>
+      </div>
+    </body>
+  </html>
+  `;
 
   // Cargamos el HTML generado directamente en la ventana
   win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`);

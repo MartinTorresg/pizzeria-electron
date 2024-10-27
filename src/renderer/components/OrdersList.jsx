@@ -12,12 +12,14 @@ function OrdersList() {
     window.electron.invoke('load-orders')
       .then((loadedOrders) => {
         console.log('Pedidos cargados desde el CSV:', loadedOrders);
+        
         // Ordenar los pedidos por fecha (más reciente primero)
         const sortedOrders = loadedOrders.sort((a, b) => {
-          const dateA = new Date(a.date.split(',')[0].split('-').reverse().join('-')); // Convierte a formato YYYY-MM-DD
-          const dateB = new Date(b.date.split(',')[0].split('-').reverse().join('-'));
+          const dateA = new Date(a.date.split(',')[0].split('-').reverse().join('-') + ' ' + a.date.split(',')[1].trim()); 
+          const dateB = new Date(b.date.split(',')[0].split('-').reverse().join('-') + ' ' + b.date.split(',')[1].trim());
           return dateB - dateA; // Ordenar en orden descendente
         });
+        
         setOrders(sortedOrders);
         filterOrdersByMonth(sortedOrders, selectedMonth); // Filtrar después de ordenar
       })
@@ -98,7 +100,7 @@ function OrdersList() {
             </tr>
           </thead>
           <tbody>
-            {orders.map((order, index) => (
+            {filteredOrders.map((order, index) => (
               <tr key={index} className="border-b hover:bg-gray-100">
                 <td className="py-2 px-4">{order.client}</td>
                 <td className="py-2 px-4">{order.date}</td>

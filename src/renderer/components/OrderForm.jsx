@@ -118,17 +118,17 @@ function OrderForm() {
         console.log('Bebida agregada con promoción');
       }
 
-      // Ajustar el total según la promoción seleccionada
+      // Ajustar el total considerando el precio acumulado más el descuento
+      const baseTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
       if (selectedPromotion === 'promoM') {
-        setTotal(8500);
+        setTotal(baseTotal >= 8500 ? 8500 : baseTotal); // Solo aplica el límite si es mayor
         console.log('Total ajustado para promoM:', 8500);
       } else if (selectedPromotion === 'promoL') {
-        setTotal(12500); // Fijamos el total en 12500 para la promoL
+        setTotal(baseTotal >= 12500 ? 12500 : baseTotal); // Solo aplica el límite si es mayor
         console.log('Total ajustado para promoL:', 12500);
       } else {
-        const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
-        setTotal(updatedTotal);
-        console.log('Total actualizado:', updatedTotal);
+        setTotal(baseTotal); // Sin promoción, suma normal
+        console.log('Total actualizado:', baseTotal);
       }
 
       return updatedItems;
@@ -140,19 +140,17 @@ function OrderForm() {
   const handleRemoveFromOrder = (index) => {
     setOrderItems((prevItems) => {
       const updatedItems = prevItems.filter((_, i) => i !== index);
-      // Recalcular total después de eliminar el elemento
-      const updatedTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
+      const baseTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
 
-      // Reajustar el total según la promoción, si aplica
       if (selectedPromotion === 'promoM') {
-        setTotal(8500);
+        setTotal(baseTotal >= 8500 ? 8500 : baseTotal);
       } else if (selectedPromotion === 'promoL') {
-        setTotal(12500);
+        setTotal(baseTotal >= 12500 ? 12500 : baseTotal);
       } else {
-        setTotal(updatedTotal);
+        setTotal(baseTotal);
       }
       
-      console.log(`Elemento eliminado. Nuevo total: ${total}`);
+      console.log(`Elemento eliminado. Nuevo total: ${baseTotal}`);
       return updatedItems;
     });
   };
@@ -212,19 +210,17 @@ function OrderForm() {
     <div className="order-form mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
 
-      {/* Selector de Promoción */}
-      <div className="mb-4">
-        <label className="block text-gray-700 font-semibold mb-2">Seleccionar Promoción:</label>
-        <select value={selectedPromotion} onChange={(e) => handlePromotionChange(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
-          <option value="">Seleccionar promoción...</option>
-          <option value="promoM">Promo M</option>
-          <option value="promoL">Promo L</option>
-        </select>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
-        {/* Primera columna: Selección de Tamaño y Pizza */}
+        {/* Primera columna: Selección de Promoción, Tamaño y Pizza */}
         <div className="col-span-1">
+          {/* Selector de Promoción */}
+          <label className="block text-gray-700 font-semibold mb-2">Seleccionar Promoción:</label>
+          <select value={selectedPromotion} onChange={(e) => handlePromotionChange(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+            <option value="">Seleccionar promoción...</option>
+            <option value="promoM">Promo M</option>
+            <option value="promoL">Promo L</option>
+          </select>
+
           <label className="block text-gray-700 font-semibold mb-2">Seleccionar Tamaño:</label>
           <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
             <option value="medium">Mediana</option>
