@@ -14,6 +14,7 @@ function OrderForm() {
   const [isHalfPizza, setIsHalfPizza] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState('');
   const [orderType, setOrderType] = useState('local');
+  const [validPizzas, setValidPizzas] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,42 +33,6 @@ function OrderForm() {
 
     fetchData();
   }, []);
-
-  const handleAddPizzaToOrder = () => {
-    if (!selectedPizza) {
-      alert('Por favor selecciona una pizza.');
-      return;
-    }
-
-    const newItem = {
-      pizza: selectedPizza,
-      secondHalf: isHalfPizza ? secondHalfPizza : null,
-      size,
-      quantity,
-      price: calculatePrice(),
-      promotion: selectedPromotion || null,
-    };
-
-    setOrderItems((prevItems) => [...prevItems, newItem]);
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setSelectedPizza('');
-    setSecondHalfPizza('');
-    setSize('medium');
-    setQuantity(1);
-    setIsHalfPizza(false);
-    setSelectedPromotion('');
-  };
-
-  const calculatePrice = () => {
-    const pizza = pizzas.find(p => p.Nombre === selectedPizza);
-    if (!pizza) return 0;
-
-    const basePrice = size === 'medium' ? pizza.PrecioMediano : pizza.PrecioFamiliar;
-    return parseFloat(basePrice) * quantity;
-  };
 
   const handleAddAccompanimentToOrder = () => {
     if (!selectedAccompaniment) {
@@ -92,27 +57,96 @@ function OrderForm() {
     setAccompanimentQuantity(1);
   };
 
-  const handleRemoveFromOrder = (index) => {
-    setOrderItems((prevItems) => prevItems.filter((_, i) => i !== index));
+  const handlePromotionChange = (promotion) => {
+    setSelectedPromotion(promotion);
+
+    const filteredPizzas = pizzas.filter(pizza => {
+      const ingredientsCount = pizza.ingredients.length; 
+      return promotion === 'promoM' ? ingredientsCount === 3 : promotion === 'promoL' && ingredientsCount >= 2;
+    });
+
+    setValidPizzas(filteredPizzas);
+    setSelectedPizza(''); // Resetear pizza seleccionada si cambian las validaciones
+  };
+
+  const handleAddPizzaToOrder = () => {
+    if (!selectedPizza) {
+      alert('Por favor selecciona una pizza.');
+      return;
+    }
+
+    const newItem = {
+      pizza: selectedPizza,
+      secondHalf: isHalfPizza ? secondHalfPizza : null,
+      size,
+      quantity,
+      price: calculatePrice(), // Este calculará el precio de acuerdo al tamaño de la pizza
+      promotion: selectedPromotion || null,
+    };
+
+    setOrderItems((prevItems) => {
+      const updatedItems = [...prevItems, newItem];
+
+      // Agregar acompañamientos automáticamente si hay promoción
+      if (selectedPromotion) {
+        const accompanimentItem = accompaniments.find(acc => acc.name === 'PALITOS DE AJO');
+        if (accompanimentItem) {
+          updatedItems.push({
+            accompaniment: accompanimentItem.name,
+            quantity: 1,
+            price: accompanimentItem.price,
+          });
+        }
+        // Agregar bebida
+        updatedItems.push({
+          accompaniment: 'BEBIDA',
+          quantity: 1,
+          price: 2500, // Cambia el precio a 2500
+        });
+      }
+
+      return updatedItems;
+    });
+    
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setSelectedPizza('');
+    setSecondHalfPizza('');
+    setSize('medium');
+    setQuantity(1);
+    setIsHalfPizza(false);
+    setSelectedPromotion('');
+    setValidPizzas([]);
+  };
+
+  const calculatePrice = () => {
+    const pizza = pizzas.find(p => p.Nombre === selectedPizza);
+    if (!pizza) return 0;
+
+    const basePrice = size === 'medium' ? pizza.PrecioMediano : pizza.PrecioFamiliar;
+    return parseFloat(basePrice) * quantity;
   };
 
   const handleSubmitOrder = () => {
     const total = orderItems.reduce((sum, item) => sum + item.price, 0);
     const iva = total * 0.19; // Suponiendo que el IVA es del 19%
     const orderData = {
-      client,
-      items: orderItems,
-      orderType,
-      date: new Date().toLocaleString(),
-      total,
-      iva: iva.toFixed(2), // Añadir IVA al objeto
+        client,
+        items: orderItems,
+        orderType,
+        date: new Date().toLocaleString(),
+        total,
+        iva: iva.toFixed(2),
+        promotion: selectedPromotion // Agregar la promoción al objeto
     };
 
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
     setClient('');
     setOrderItems([]);
-  };
+};
 
   const total = orderItems.reduce((sum, item) => sum + item.price, 0);
   const iva = total * 0.19; // IVA
@@ -121,6 +155,16 @@ function OrderForm() {
   return (
     <div className="order-form mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
+
+      {/* Selector de Promoción */}
+      <div className="mb-4">
+        <label className="block text-gray-700 font-semibold mb-2">Seleccionar Promoción:</label>
+        <select value={selectedPromotion} onChange={(e) => handlePromotionChange(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+          <option value="">Seleccionar promoción...</option>
+          <option value="promoM">Promo M</option>
+          <option value="promoL">Promo L</option>
+        </select>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         {/* Primera columna: Selección de Tamaño y Pizza */}
@@ -135,7 +179,11 @@ function OrderForm() {
             <h3 className="text-xl font-semibold mb-4">Seleccionar Pizza:</h3>
             <select value={selectedPizza} onChange={(e) => setSelectedPizza(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
               <option value="">Seleccionar pizza...</option>
-              {pizzas.map((pizza) => (
+              {validPizzas.length > 0 ? validPizzas.map((pizza) => (
+                <option key={pizza.Nombre} value={pizza.Nombre}>
+                  {pizza.Nombre}
+                </option>
+              )) : pizzas.map((pizza) => (
                 <option key={pizza.Nombre} value={pizza.Nombre}>
                   {pizza.Nombre}
                 </option>
