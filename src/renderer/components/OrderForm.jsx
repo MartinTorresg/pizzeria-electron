@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ClientForm from './ClientForm';
 
 function OrderForm() {
   const [pizzas, setPizzas] = useState([]);
@@ -16,6 +17,7 @@ function OrderForm() {
   const [orderType, setOrderType] = useState('local');
   const [validPizzas, setValidPizzas] = useState([]);
   const [total, setTotal] = useState(0);
+  const [showClientForm, setShowClientForm] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -209,6 +211,17 @@ function OrderForm() {
   return (
     <div className="order-form mx-auto p-4">
       <h2 className="text-3xl font-bold mb-6 text-center text-green-700">Tomar Pedido</h2>
+
+      {/* Botón para agregar cliente */}
+      <button
+        onClick={() => setShowClientForm(!showClientForm)}
+        className="bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-lg py-2 px-4 mb-4 transition duration-200"
+      >
+        {showClientForm ? 'Cerrar Formulario de Cliente' : 'Agregar Cliente'}
+      </button>
+
+      {/* Mostrar el formulario de cliente si showClientForm es true */}
+      {showClientForm && <ClientForm />}
 
       <div className="grid grid-cols-2 gap-4">
         {/* Primera columna: Selección de Promoción, Tamaño y Pizza */}

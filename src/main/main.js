@@ -6,10 +6,14 @@ const pdf = require('html-pdf');
 
 let win;
 
+const resourcesCsvPath = path.join(process.resourcesPath, 'data/pizzas.csv'); // Ruta en resources del build
+const clientsCsvPath = path.join(app.getPath('userData'), 'clients.csv');
+
 function createWindow() {
   win = new BrowserWindow({
     width: 800,
     height: 600,
+    icon: path.join(__dirname, '../assets/icons/rambla_logo.PNG'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -26,7 +30,6 @@ app.whenReady().then(() => {
   // Copiar CSV desde resources a la carpeta de datos del usuario si no existe
   const userDataPath = app.getPath('userData');
   const pizzasCsvPath = path.join(userDataPath, 'pizzas.csv'); // Ruta donde copiaremos el archivo CSV de pizzas
-  const resourcesCsvPath = path.join(process.resourcesPath, 'data/pizzas.csv'); // Ruta en resources del build
 
   if (!fs.existsSync(pizzasCsvPath) && fs.existsSync(resourcesCsvPath)) {
     fs.copyFileSync(resourcesCsvPath, pizzasCsvPath);
@@ -392,3 +395,62 @@ ipcMain.on('generate-pdf', (event, { orders }) => {
   });
 });
 
+function readClientsFromCSV() {
+  return new Promise((resolve, reject) => {
+    const clients = [];
+
+    if (fs.existsSync(clientsCsvPath)) {
+      fs.createReadStream(clientsCsvPath)
+        .pipe(csv(['nombre', 'numero', 'direccion']))
+        .on('data', (data) => {
+          clients.push(data);
+        })
+        .on('end', () => {
+          resolve(clients);
+        })
+        .on('error', (error) => {
+          reject(error);
+        });
+    } else {
+      resolve([]); // Si el archivo no existe, devolvemos un array vacío
+    }
+  });
+}
+
+function writeClientToCSV(client) {
+  return readClientsFromCSV().then((clients) => {
+    const clientExists = clients.some((existingClient) => existingClient.numero === client.numero);
+    if (clientExists) {
+      throw new Error('El cliente ya existe en la base de datos');
+    }
+
+    if (!fs.existsSync(clientsCsvPath)) {
+      const headers = 'nombre,numero,direccion\n';
+      fs.writeFileSync(clientsCsvPath, headers, 'utf8');
+    }
+
+    const clientData = `${client.nombre},${client.numero},${client.direccion}\n`;
+    fs.appendFileSync(clientsCsvPath, clientData, 'utf8');
+  });
+}
+
+// Canal para agregar un cliente al CSV
+ipcMain.on('add-client', async (event, client) => {
+  const clients = await readClientsFromCSV();
+
+  // Verificar si ya existe un cliente con el mismo número
+  const clientExists = clients.some(existingClient => existingClient.numero === client.numero);
+
+  if (clientExists) {
+    event.reply('client-error', 'Este número ya está registrado para otro cliente.');
+  } else {
+    writeClientToCSV(client);
+    event.reply('client-added', 'Cliente agregado exitosamente');
+  }
+});
+
+
+ipcMain.handle('get-clients', async () => {
+  const clients = await readClientsFromCSV();
+  return clients;
+});

@@ -5,6 +5,7 @@ import OrdersList from './components/OrdersList';
 import AddAccompanimentForm from './components/AddAccompanimentForm'; // Asegúrate de tener este componente
 import ProductSalesDashboard from './components/ProductSalesDashboard';
 import DateSalesDashboard from './components/DateSalesDashboard';
+import ClientList from './components/ClientList'; // Importamos ClientList
 
 function App() {
   const [currentComponent, setCurrentComponent] = useState(<OrderForm pizzas={[]} />);
@@ -63,6 +64,12 @@ function App() {
               onClick={() => renderComponent(<DateSalesDashboard />)}
             >
               Dashboard de Finanzas
+            </button>
+            <button
+              className="hover:bg-gray-600 p-2 rounded transition duration-200 bg-gray-500 text-white font-bold"
+              onClick={() => renderComponent(<ClientList />)} // Nuevo botón para ClientList
+            >
+              Ver Clientes
             </button>
           </div>
         </div>
