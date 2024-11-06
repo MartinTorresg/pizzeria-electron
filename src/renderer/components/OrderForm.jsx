@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ClientForm from './ClientForm';
+import CustomPizza from './CustomPizza';
+
 
 function OrderForm() {
   const [pizzas, setPizzas] = useState([]);
@@ -21,6 +23,8 @@ function OrderForm() {
   const [selectedClientId, setSelectedClientId] = useState('');
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState({ nombre: 'No especificado', numero: 'No especificado' });
+  const [showCustomPizza, setShowCustomPizza] = useState(false);
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,6 +68,11 @@ function OrderForm() {
     } else {
       setClientInfo({ nombre: 'No especificado', numero: 'No especificado' });
     }
+  };
+
+  const handleAddCustomPizza = (customPizza) => {
+    setOrderItems((prevItems) => [...prevItems, customPizza]);
+    setTotal((prevTotal) => prevTotal + customPizza.price);
   };
 
   const handleAddAccompanimentToOrder = () => {
@@ -265,6 +274,17 @@ function OrderForm() {
             <option value="promoL">Promo L</option>
           </select>
 
+          {/* Botón para Mostrar/Ocultar CustomPizza */}
+          <button
+            onClick={() => setShowCustomPizza(!showCustomPizza)}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg py-2 px-4 mb-4"
+          >
+            {showCustomPizza ? 'Cerrar Personalización de Pizza' : 'Arma tu Pizza'}
+          </button>
+
+          {/* Componente CustomPizza Condicional */}
+          {showCustomPizza && <CustomPizza onAddCustomPizza={handleAddCustomPizza} />}
+
           <label className="block text-gray-700 font-semibold mb-2">Seleccionar Tamaño:</label>
           <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
             <option value="medium">Mediana</option>
@@ -366,11 +386,12 @@ function OrderForm() {
               {orderItems.map((item, index) => (
                 <li key={index} className="flex justify-between items-center">
                   <span>
-                    {item.quantity} x {item.pizza || item.accompaniment} {item.secondHalf ? ` / ${item.secondHalf}` : ''} ({item.size || ''}) - ${item.price.toFixed(2)}
+                    {item.quantity} x {item.name} ({item.size}) - {item.ingredients} - ${item.price.toFixed(2)}
                   </span>
                   <button onClick={() => handleRemoveFromOrder(index)} className="text-red-500 ml-2">Eliminar</button>
                 </li>
               ))}
+
             </ul>
           </div>
           <table className="min-w-full bg-white shadow-md rounded-lg">

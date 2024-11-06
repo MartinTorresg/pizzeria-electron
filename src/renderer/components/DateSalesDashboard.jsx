@@ -20,6 +20,11 @@ function DateSalesDashboard() {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
 
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
   useEffect(() => {
     fetchSalesData();
   }, [selectedMonth, selectedYear, filter]);
@@ -40,17 +45,20 @@ function DateSalesDashboard() {
 
       if (isNaN(date)) return;
 
+      const year = date.getFullYear().toString();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+
+      if (selectedYear && year !== selectedYear) return;
+      if (selectedMonth && month !== selectedMonth) return;
+
       let dateKey;
-      if (filter === 'monthly') {
-        const year = date.getFullYear().toString();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0');
-        const day = date.getDate().toString().padStart(2, '0');
-
-        if (selectedYear && year !== selectedYear) return;
-        if (selectedMonth && month !== selectedMonth) return;
-
-        // Generar una clave diaria para ver el progreso por día en el mes seleccionado
+      if (selectedMonth) {
+        // Agrupar por día si un mes está seleccionado
         dateKey = `${year}-${month}-${day}`;
+      } else {
+        // Agrupar por mes si no hay mes seleccionado
+        dateKey = `${year}-${month}`;
       }
 
       if (!salesByDate[dateKey]) salesByDate[dateKey] = [];
@@ -60,11 +68,25 @@ function DateSalesDashboard() {
     return salesByDate;
   };
 
+  const getFormattedDateLabel = (dateStr) => {
+    const parts = dateStr.split('-');
+    const year = parts[0];
+    const month = monthNames[parseInt(parts[1], 10) - 1];
+
+    if (parts.length === 3) {
+      // Formato completo (año, mes, día) para un mes específico
+      const day = parts[2];
+      return `${day} ${month} ${year}`;
+    }
+    // Solo mes y año cuando no hay mes seleccionado
+    return `${month} ${year}`;
+  };
+
   const chartData = {
-    labels: Object.keys(salesData),
+    labels: Object.keys(salesData).sort().map(date => getFormattedDateLabel(date)),
     datasets: [{
       label: 'Ventas por Fecha',
-      data: Object.keys(salesData).map(date =>
+      data: Object.keys(salesData).sort().map(date =>
         salesData[date].reduce((sum, order) => sum + order.total, 0)
       ),
       backgroundColor: selectedMonth ? 'rgba(153, 102, 255, 0.5)' : 'rgba(75, 192, 192, 0.5)',
@@ -93,18 +115,11 @@ function DateSalesDashboard() {
               className="border rounded px-3 py-2"
             >
               <option value="">Todos</option>
-              <option value="01">Enero</option>
-              <option value="02">Febrero</option>
-              <option value="03">Marzo</option>
-              <option value="04">Abril</option>
-              <option value="05">Mayo</option>
-              <option value="06">Junio</option>
-              <option value="07">Julio</option>
-              <option value="08">Agosto</option>
-              <option value="09">Septiembre</option>
-              <option value="10">Octubre</option>
-              <option value="11">Noviembre</option>
-              <option value="12">Diciembre</option>
+              {monthNames.map((month, index) => (
+                <option key={index} value={(index + 1).toString().padStart(2, '0')}>
+                  {month}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -130,13 +145,8 @@ function DateSalesDashboard() {
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                legend: {
-                  position: 'top',
-                },
-                title: {
-                  display: true,
-                  text: `Ventas Diarias - ${selectedMonth}/${selectedYear}`,
-                },
+                legend: { position: 'top' },
+                title: { display: true, text: `Ventas Diarias - ${monthNames[parseInt(selectedMonth, 10) - 1]} ${selectedYear}` },
               },
             }}
           />
@@ -147,13 +157,8 @@ function DateSalesDashboard() {
               responsive: true,
               maintainAspectRatio: false,
               plugins: {
-                legend: {
-                  position: 'top',
-                },
-                title: {
-                  display: true,
-                  text: 'Ventas Mensuales',
-                },
+                legend: { position: 'top' },
+                title: { display: true, text: 'Ventas Mensuales' },
               },
             }}
           />
@@ -165,11 +170,11 @@ function DateSalesDashboard() {
         <h3 className="text-xl font-semibold mb-4">Resumen de Ventas</h3>
         <ul className="space-y-2">
           {Object.keys(salesData).length > 0 ? (
-            Object.keys(salesData).map(date => {
+            Object.keys(salesData).sort().map(date => {
               const totalForDate = salesData[date].reduce((sum, order) => sum + order.total, 0);
               return (
                 <li key={date} className="flex justify-between">
-                  <span>{date}:</span>
+                  <span>{getFormattedDateLabel(date)}:</span>
                   <span className="font-bold">${totalForDate.toFixed(2)}</span>
                 </li>
               );
