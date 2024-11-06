@@ -18,6 +18,9 @@ function OrderForm() {
   const [validPizzas, setValidPizzas] = useState([]);
   const [total, setTotal] = useState(0);
   const [showClientForm, setShowClientForm] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState({ nombre: 'No especificado', numero: 'No especificado' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,6 +33,11 @@ function OrderForm() {
           const loadedAccompaniments = await window.electron.invoke('get-accompaniments');
           setAccompaniments(loadedAccompaniments);
           console.log('Acompañamientos cargados:', loadedAccompaniments);
+
+          // Cargar clientes
+          const loadedClients = await window.electron.invoke('get-clients');
+          setClients(loadedClients);
+          console.log('Clientes cargados:', loadedClients);
         }
       } catch (error) {
         console.error('Error al cargar los datos:', error);
@@ -37,7 +45,26 @@ function OrderForm() {
     };
 
     fetchData();
+
+    const fetchClients = async () => {
+      if (window.electron && window.electron.invoke) {
+        const loadedClients = await window.electron.invoke('get-clients');
+        setClients(loadedClients);
+      }
+    };
+    fetchClients();
   }, []);
+
+  const handleClientSelection = (event) => {
+    const selectedId = event.target.value;
+    setSelectedClientId(selectedId);
+    const selectedClient = clients.find(client => client.id === selectedId);
+    if (selectedClient) {
+      setClientInfo({ nombre: selectedClient.nombre, numero: selectedClient.numero });
+    } else {
+      setClientInfo({ nombre: 'No especificado', numero: 'No especificado' });
+    }
+  };
 
   const handleAddAccompanimentToOrder = () => {
     console.log('Intentando agregar acompañamiento...');
@@ -70,7 +97,7 @@ function OrderForm() {
     setSelectedPromotion(promotion);
 
     const filteredPizzas = pizzas.filter(pizza => {
-      const ingredientsCount = pizza.ingredients.length; 
+      const ingredientsCount = pizza.ingredients.length;
       return promotion === 'promoM' ? ingredientsCount === 3 : promotion === 'promoL' && ingredientsCount >= 2;
     });
 
@@ -135,7 +162,7 @@ function OrderForm() {
 
       return updatedItems;
     });
-    
+
     resetForm();
   };
 
@@ -151,7 +178,7 @@ function OrderForm() {
       } else {
         setTotal(baseTotal);
       }
-      
+
       console.log(`Elemento eliminado. Nuevo total: ${baseTotal}`);
       return updatedItems;
     });
@@ -182,28 +209,32 @@ function OrderForm() {
     return totalPrice;
   };
 
+  // Función para enviar el pedido
   const handleSubmitOrder = () => {
     const orderData = {
-      client,
+      client: client, // aquí enviamos el cliente seleccionado
       items: orderItems,
       orderType,
       date: new Date().toLocaleString(),
       total,
-      promotion: selectedPromotion // Agregar la promoción al objeto
+      promotion: selectedPromotion
     };
 
-    console.log('Datos del pedido a enviar:', orderData);
-    console.log('Valor total del pedido (final):', total);
+    console.log("Datos del pedido a enviar:", orderData);
+    console.log("Cliente en el pedido:", orderData.client);
 
+    // Aquí enviamos los datos del pedido a través de Electron
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
-    setClient('');
+
+    // Restablecemos los valores
+    setClient({ nombre: "", numero: "" });
     setOrderItems([]);
     setTotal(0);
   };
 
   console.log('Valor total del pedido:', total);
-  
+
   if (selectedPromotion === 'promoL' && total !== 12500) {
     console.log('Error en el cálculo de promoción: el total debería ser 12500.');
   }
@@ -350,16 +381,20 @@ function OrderForm() {
               </tr>
             </tbody>
           </table>
-          <div className="client-info mt-6">
-            <label htmlFor="client" className="block text-gray-700 font-semibold">Cliente:</label>
-            <input
-              type="text"
-              id="client"
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              className="w-full mt-2 p-3 border border-green-500 rounded-md"
-              required
-            />
+          <div className="client-selection mb-4">
+            <label className="block text-gray-700 font-semibold mb-2">Seleccionar Cliente:</label>
+            <select
+              value={selectedClientId}
+              onChange={handleClientSelection}
+              className="w-full p-2 border border-green-500 rounded-md"
+            >
+              <option value="">Seleccionar cliente...</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.nombre} - {client.numero}
+                </option>
+              ))}
+            </select>
           </div>
           <button
             onClick={handleSubmitOrder}

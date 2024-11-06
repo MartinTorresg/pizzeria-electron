@@ -187,7 +187,8 @@ ipcMain.on('print-receipt', (event, orderData) => {
     </head>
     <body>
       <h1>Pedido para Cocina</h1>
-      <p class="ticket-header">Cliente: ${orderData.client || 'No especificado'}</p>
+      <p class="ticket-header">Cliente: ${orderData.client.nombre || 'No especificado'}</p>
+      <p class="ticket-header">Teléfono: ${orderData.client.numero || 'No especificado'}</p>
       <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
       <p class="ticket-header">Tipo de Pedido: ${orderData.orderType}</p>
   
@@ -239,6 +240,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
   });
 
 });
+
 
 // Función para leer los acompañamientos del CSV
 function readAccompanimentsFromCSV() {
@@ -395,13 +397,17 @@ ipcMain.on('generate-pdf', (event, { orders }) => {
   });
 });
 
+// En el archivo main.js
+
+// En el archivo main.js
+
 function readClientsFromCSV() {
   return new Promise((resolve, reject) => {
     const clients = [];
 
     if (fs.existsSync(clientsCsvPath)) {
       fs.createReadStream(clientsCsvPath)
-        .pipe(csv(['nombre', 'numero', 'direccion']))
+        .pipe(csv(['id', 'nombre', 'numero', 'direccion'])) // Añadir la columna id
         .on('data', (data) => {
           clients.push(data);
         })
@@ -412,7 +418,7 @@ function readClientsFromCSV() {
           reject(error);
         });
     } else {
-      resolve([]); // Si el archivo no existe, devolvemos un array vacío
+      resolve([]);
     }
   });
 }
@@ -425,31 +431,27 @@ function writeClientToCSV(client) {
     }
 
     if (!fs.existsSync(clientsCsvPath)) {
-      const headers = 'nombre,numero,direccion\n';
+      const headers = 'id,nombre,numero,direccion\n';
       fs.writeFileSync(clientsCsvPath, headers, 'utf8');
     }
 
-    const clientData = `${client.nombre},${client.numero},${client.direccion}\n`;
+    // Generamos un ID único para cada cliente
+    const clientData = `${uuidv4()},${client.nombre},${client.numero},${client.direccion}\n`;
     fs.appendFileSync(clientsCsvPath, clientData, 'utf8');
   });
 }
 
 // Canal para agregar un cliente al CSV
 ipcMain.on('add-client', async (event, client) => {
-  const clients = await readClientsFromCSV();
-
-  // Verificar si ya existe un cliente con el mismo número
-  const clientExists = clients.some(existingClient => existingClient.numero === client.numero);
-
-  if (clientExists) {
-    event.reply('client-error', 'Este número ya está registrado para otro cliente.');
-  } else {
-    writeClientToCSV(client);
+  try {
+    await writeClientToCSV(client);
     event.reply('client-added', 'Cliente agregado exitosamente');
+  } catch (error) {
+    event.reply('client-error', error.message);
   }
 });
 
-
+// Canal para obtener la lista de clientes desde el CSV
 ipcMain.handle('get-clients', async () => {
   const clients = await readClientsFromCSV();
   return clients;
