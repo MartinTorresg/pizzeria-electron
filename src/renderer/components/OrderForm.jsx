@@ -386,7 +386,10 @@ function OrderForm() {
               {orderItems.map((item, index) => (
                 <li key={index} className="flex justify-between items-center">
                   <span>
-                    {item.quantity} x {item.name} ({item.size}) - {item.ingredients} - ${item.price.toFixed(2)}
+                    {item.quantity} x {item.pizza || item.accompaniment} {/* Mostrar el nombre según si es pizza o acompañamiento */}
+                    {item.size ? ` (${item.size})` : ''} {/* Solo mostrar el tamaño si está presente */}
+                    {item.ingredients ? ` - ${item.ingredients}` : ''} {/* Solo mostrar los ingredientes si están presentes */}
+                    - ${item.price.toFixed(2)}
                   </span>
                   <button onClick={() => handleRemoveFromOrder(index)} className="text-red-500 ml-2">Eliminar</button>
                 </li>

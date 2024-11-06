@@ -168,6 +168,9 @@ ipcMain.on('print-receipt', (event, orderData) => {
           padding-bottom: 5px;
           text-align: center;
         }
+        .ticket-header {
+          margin: 5px 0;
+        }
         .items-table {
           width: 100%;
           border-collapse: collapse;
@@ -202,7 +205,12 @@ ipcMain.on('print-receipt', (event, orderData) => {
         <tbody>
           ${orderData.items.map(item => `
             <tr>
-              <td>${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} (${item.size || ''})</td>
+              <td>
+                ${item.pizza || item.accompaniment} 
+                ${item.secondHalf ? ` / ${item.secondHalf}` : ''} 
+                ${item.size ? `(${item.size})` : ''}
+                ${item.ingredients ? `<br><small>Ingredientes: ${item.ingredients}</small>` : ''}
+              </td>
               <td>${item.quantity}</td>
             </tr>
           `).join('')}
@@ -238,9 +246,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
       win.close();
     });
   });
-
 });
-
 
 // Función para leer los acompañamientos del CSV
 function readAccompanimentsFromCSV() {
@@ -396,10 +402,6 @@ ipcMain.on('generate-pdf', (event, { orders }) => {
     });
   });
 });
-
-// En el archivo main.js
-
-// En el archivo main.js
 
 function readClientsFromCSV() {
   return new Promise((resolve, reject) => {
