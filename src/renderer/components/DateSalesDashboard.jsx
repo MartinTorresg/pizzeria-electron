@@ -39,48 +39,38 @@ function DateSalesDashboard() {
     const salesByDate = {};
 
     sales.forEach(order => {
-      const dateParts = order.date.split(', ')[0].split('-');
-      const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-      const date = new Date(formattedDate);
+        // Obtenemos la fecha del pedido en el formato original (dd-mm-yyyy)
+        const [day, month, year] = order.date.split(', ')[0].split('-');
+        
+        // Armamos las claves de agrupación en función del filtro (año, mes, día)
+        const dateKey = selectedMonth ? `${year}-${month}-${day}` : `${year}-${month}`;
 
-      if (isNaN(date)) return;
+        // Filtrar por año y mes si están seleccionados
+        if (selectedYear && year !== selectedYear) return;
+        if (selectedMonth && month !== selectedMonth) return;
 
-      const year = date.getFullYear().toString();
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const day = date.getDate().toString().padStart(2, '0');
-
-      if (selectedYear && year !== selectedYear) return;
-      if (selectedMonth && month !== selectedMonth) return;
-
-      let dateKey;
-      if (selectedMonth) {
-        // Agrupar por día si un mes está seleccionado
-        dateKey = `${year}-${month}-${day}`;
-      } else {
-        // Agrupar por mes si no hay mes seleccionado
-        dateKey = `${year}-${month}`;
-      }
-
-      if (!salesByDate[dateKey]) salesByDate[dateKey] = [];
-      salesByDate[dateKey].push(order);
+        if (!salesByDate[dateKey]) salesByDate[dateKey] = [];
+        salesByDate[dateKey].push(order);
     });
 
     return salesByDate;
-  };
+};
 
-  const getFormattedDateLabel = (dateStr) => {
-    const parts = dateStr.split('-');
-    const year = parts[0];
-    const month = monthNames[parseInt(parts[1], 10) - 1];
 
-    if (parts.length === 3) {
-      // Formato completo (año, mes, día) para un mes específico
+const getFormattedDateLabel = (dateStr) => {
+  const parts = dateStr.split('-');
+  const year = parts[0];
+  const month = monthNames[parseInt(parts[1], 10) - 1];
+
+  if (parts.length === 3) {
+      // Si es un formato completo (yyyy-mm-dd), mostrar el día
       const day = parts[2];
       return `${day} ${month} ${year}`;
-    }
-    // Solo mes y año cuando no hay mes seleccionado
-    return `${month} ${year}`;
-  };
+  }
+  // Formato solo año y mes
+  return `${month} ${year}`;
+};
+
 
   const chartData = {
     labels: Object.keys(salesData).sort().map(date => getFormattedDateLabel(date)),

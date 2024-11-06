@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import ClientForm from './ClientForm';
 import CustomPizza from './CustomPizza';
 
-
 function OrderForm() {
   const [pizzas, setPizzas] = useState([]);
   const [accompaniments, setAccompaniments] = useState([]);
@@ -24,7 +23,6 @@ function OrderForm() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState({ nombre: 'No especificado', numero: 'No especificado' });
   const [showCustomPizza, setShowCustomPizza] = useState(false);
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,13 +68,66 @@ function OrderForm() {
     }
   };
 
+  const handlePromotionChange = (promotion) => {
+    console.log('Promoción seleccionada:', promotion);
+    setSelectedPromotion(promotion);
+
+    // Filtrar pizzas válidas según la promoción seleccionada
+    const filteredPizzas = pizzas.filter(pizza => {
+      const ingredientsCount = pizza.ingredients.length;
+      return promotion === 'promoM' ? ingredientsCount === 3 : promotion === 'promoL' && ingredientsCount >= 2;
+    });
+
+    console.log('Pizzas válidas según la promoción:', filteredPizzas);
+    setValidPizzas(filteredPizzas);
+    setSelectedPizza('');
+  };
+
+  const handleAddPizzaToOrder = () => {
+    if (!selectedPizza) {
+      alert('Por favor selecciona una pizza.');
+      return;
+    }
+
+    if (selectedPromotion) {
+      // Agregar como promoción
+      const promoPrice = selectedPromotion === 'promoM' ? 8500 : 12500;
+      const promotionItem = {
+        promotion: selectedPromotion === 'promoM' ? 'Promoción M' : 'Promoción L',
+        description: `${selectedPromotion === 'promoM' ? 'Promo M' : 'Promo L'}: ${selectedPizza} + palitos de ajo + bebida`,
+        quantity: 1,
+        price: promoPrice,
+      };
+
+      setOrderItems((prevItems) => [...prevItems, promotionItem]);
+      setTotal((prevTotal) => prevTotal + promoPrice);
+    } else {
+      // Agregar pizza normal sin promoción
+      const pizzaPrice = calculatePrice();
+      const newItem = {
+        pizza: selectedPizza,
+        size,
+        quantity,
+        price: pizzaPrice,
+      };
+
+      setOrderItems((prevItems) => [...prevItems, newItem]);
+      setTotal((prevTotal) => prevTotal + pizzaPrice);
+    }
+
+    resetForm();
+  };
+
   const handleAddCustomPizza = (customPizza) => {
-    setOrderItems((prevItems) => [...prevItems, customPizza]);
-    setTotal((prevTotal) => prevTotal + customPizza.price);
+    if (customPizza && customPizza.ingredients.length > 0) {
+      setOrderItems((prevItems) => [...prevItems, customPizza]);
+      setTotal((prevTotal) => prevTotal + customPizza.price);
+    } else {
+      console.warn('Pizza personalizada sin ingredientes no agregada.');
+    }
   };
 
   const handleAddAccompanimentToOrder = () => {
-    console.log('Intentando agregar acompañamiento...');
     if (!selectedAccompaniment) {
       alert('Por favor selecciona un acompañamiento.');
       return;
@@ -94,107 +145,22 @@ function OrderForm() {
       price: accompaniment.price * accompanimentQuantity,
     };
 
-    console.log('Nuevo acompañamiento agregado:', newAccompanimentItem);
     setOrderItems((prevItems) => [...prevItems, newAccompanimentItem]);
-    setTotal((prevTotal) => prevTotal + newAccompanimentItem.price); // Agregar al total
+    setTotal((prevTotal) => prevTotal + newAccompanimentItem.price);
     setSelectedAccompaniment('');
     setAccompanimentQuantity(1);
-  };
-
-  const handlePromotionChange = (promotion) => {
-    console.log('Promoción seleccionada:', promotion);
-    setSelectedPromotion(promotion);
-
-    const filteredPizzas = pizzas.filter(pizza => {
-      const ingredientsCount = pizza.ingredients.length;
-      return promotion === 'promoM' ? ingredientsCount === 3 : promotion === 'promoL' && ingredientsCount >= 2;
-    });
-
-    console.log('Pizzas válidas según la promoción:', filteredPizzas);
-    setValidPizzas(filteredPizzas);
-    setSelectedPizza(''); // Resetear pizza seleccionada si cambian las validaciones
-  };
-
-  const handleAddPizzaToOrder = () => {
-    console.log('Intentando agregar pizza...');
-    if (!selectedPizza) {
-      alert('Por favor selecciona una pizza.');
-      return;
-    }
-
-    const newItem = {
-      pizza: selectedPizza,
-      secondHalf: isHalfPizza ? secondHalfPizza : null,
-      size,
-      quantity,
-      price: calculatePrice(), // Este calculará el precio de acuerdo al tamaño de la pizza
-      promotion: selectedPromotion || null,
-    };
-
-    console.log('Nuevo item de pizza agregado:', newItem);
-
-    setOrderItems((prevItems) => {
-      const updatedItems = [...prevItems, newItem];
-
-      // Agregar acompañamientos automáticamente si hay promoción
-      if (selectedPromotion) {
-        const accompanimentItem = accompaniments.find(acc => acc.name === 'PALITOS DE AJO');
-        if (accompanimentItem) {
-          updatedItems.push({
-            accompaniment: accompanimentItem.name,
-            quantity: 1,
-            price: accompanimentItem.price,
-          });
-          console.log('Acompañamiento agregado con promoción:', accompanimentItem);
-        }
-        // Agregar bebida
-        updatedItems.push({
-          accompaniment: 'BEBIDA',
-          quantity: 1,
-          price: 2500, // Cambia el precio a 2500
-        });
-        console.log('Bebida agregada con promoción');
-      }
-
-      // Ajustar el total considerando el precio acumulado más el descuento
-      const baseTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
-      if (selectedPromotion === 'promoM') {
-        setTotal(baseTotal >= 8500 ? 8500 : baseTotal); // Solo aplica el límite si es mayor
-        console.log('Total ajustado para promoM:', 8500);
-      } else if (selectedPromotion === 'promoL') {
-        setTotal(baseTotal >= 12500 ? 12500 : baseTotal); // Solo aplica el límite si es mayor
-        console.log('Total ajustado para promoL:', 12500);
-      } else {
-        setTotal(baseTotal); // Sin promoción, suma normal
-        console.log('Total actualizado:', baseTotal);
-      }
-
-      return updatedItems;
-    });
-
-    resetForm();
   };
 
   const handleRemoveFromOrder = (index) => {
     setOrderItems((prevItems) => {
       const updatedItems = prevItems.filter((_, i) => i !== index);
-      const baseTotal = updatedItems.reduce((sum, item) => sum + item.price, 0);
-
-      if (selectedPromotion === 'promoM') {
-        setTotal(baseTotal >= 8500 ? 8500 : baseTotal);
-      } else if (selectedPromotion === 'promoL') {
-        setTotal(baseTotal >= 12500 ? 12500 : baseTotal);
-      } else {
-        setTotal(baseTotal);
-      }
-
-      console.log(`Elemento eliminado. Nuevo total: ${baseTotal}`);
+      const newTotal = updatedItems.reduce((sum, item) => sum + (item.price || 0), 0);
+      setTotal(newTotal);
       return updatedItems;
     });
   };
 
   const resetForm = () => {
-    console.log('Reseteando formulario...');
     setSelectedPizza('');
     setSecondHalfPizza('');
     setSize('medium');
@@ -205,38 +171,24 @@ function OrderForm() {
   };
 
   const calculatePrice = () => {
-    console.log('Calculando precio...');
     const pizza = pizzas.find(p => p.Nombre === selectedPizza);
-    if (!pizza) {
-      console.log('Pizza no encontrada');
-      return 0;
-    }
-
+    if (!pizza) return 0;
     const basePrice = size === 'medium' ? pizza.PrecioMediano : pizza.PrecioFamiliar;
-    const totalPrice = parseFloat(basePrice) * quantity;
-    console.log('Precio calculado:', totalPrice);
-    return totalPrice;
+    return parseFloat(basePrice) * quantity;
   };
 
-  // Función para enviar el pedido
   const handleSubmitOrder = () => {
     const orderData = {
-      client: client, // aquí enviamos el cliente seleccionado
+      client: client,
       items: orderItems,
       orderType,
       date: new Date().toLocaleString(),
       total,
-      promotion: selectedPromotion
     };
 
-    console.log("Datos del pedido a enviar:", orderData);
-    console.log("Cliente en el pedido:", orderData.client);
-
-    // Aquí enviamos los datos del pedido a través de Electron
     window.electron.send('save-order', orderData);
     window.electron.send('print-receipt', orderData);
 
-    // Restablecemos los valores
     setClient({ nombre: "", numero: "" });
     setOrderItems([]);
     setTotal(0);
@@ -386,15 +338,11 @@ function OrderForm() {
               {orderItems.map((item, index) => (
                 <li key={index} className="flex justify-between items-center">
                   <span>
-                    {item.quantity} x {item.pizza || item.accompaniment} {/* Mostrar el nombre según si es pizza o acompañamiento */}
-                    {item.size ? ` (${item.size})` : ''} {/* Solo mostrar el tamaño si está presente */}
-                    {item.ingredients ? ` - ${item.ingredients}` : ''} {/* Solo mostrar los ingredientes si están presentes */}
-                    - ${item.price.toFixed(2)}
+                    {item.quantity} x {item.description || item.pizza || item.accompaniment} - ${item.price.toFixed(2)}
                   </span>
                   <button onClick={() => handleRemoveFromOrder(index)} className="text-red-500 ml-2">Eliminar</button>
                 </li>
               ))}
-
             </ul>
           </div>
           <table className="min-w-full bg-white shadow-md rounded-lg">

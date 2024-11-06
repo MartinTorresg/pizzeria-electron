@@ -206,9 +206,11 @@ ipcMain.on('print-receipt', (event, orderData) => {
           ${orderData.items.map(item => `
             <tr>
               <td>
-                ${item.pizza || item.accompaniment} 
-                ${item.secondHalf ? ` / ${item.secondHalf}` : ''} 
-                ${item.size ? `(${item.size})` : ''}
+                ${
+                  item.promotion
+                    ? `${item.promotion}: ${item.description}`
+                    : `${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} ${item.size ? `(${item.size})` : ''}`
+                }
                 ${item.ingredients ? `<br><small>Ingredientes: ${item.ingredients}</small>` : ''}
               </td>
               <td>${item.quantity}</td>
