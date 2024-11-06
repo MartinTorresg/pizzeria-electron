@@ -23,6 +23,7 @@ function OrderForm() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState({ nombre: 'No especificado', numero: 'No especificado' });
   const [showCustomPizza, setShowCustomPizza] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -182,6 +183,7 @@ function OrderForm() {
       client: client,
       items: orderItems,
       orderType,
+      paymentMethod,
       date: new Date().toLocaleString(),
       total,
     };
@@ -192,6 +194,7 @@ function OrderForm() {
     setClient({ nombre: "", numero: "" });
     setOrderItems([]);
     setTotal(0);
+    setPaymentMethod('cash');
   };
 
   console.log('Valor total del pedido:', total);
@@ -330,6 +333,20 @@ function OrderForm() {
             <option value="delivery">Delivery</option>
             <option value="takeaway">Retiro en el local</option>
           </select>
+
+          {/* Método de Pago */}
+          <h3 className="text-xl font-semibold mt-6 mb-2">Método de Pago:</h3>
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+            className="w-full p-2 border border-green-500 rounded-md mb-4"
+          >
+            <option value="cash">Efectivo</option>
+            <option value="credit">Tarjeta de Crédito</option>
+            <option value="debit">Tarjeta de Débito</option>
+            <option value="transfer">Transferencia Bancaria</option>
+          </select>
+
 
           {/* Resumen del Pedido */}
           <h3 className="text-xl font-semibold mt-6 mb-2">Resumen del Pedido:</h3>

@@ -103,6 +103,11 @@ ipcMain.handle('get-pizzas', async () => {
 ipcMain.on('save-order', (event, orderData) => {
   const ordersCsvPath = path.join(app.getPath('userData'), 'orders.csv');
 
+  // Asegurarse de que orderData incluye el campo paymentMethod
+  if (!orderData.paymentMethod) {
+    orderData.paymentMethod = 'cash'; // Valor predeterminado en caso de que falte
+  }
+
   // Serializar todo el objeto orderData como JSON
   const csvContent = JSON.stringify(orderData) + '\n';
 
@@ -111,10 +116,10 @@ ipcMain.on('save-order', (event, orderData) => {
     fs.writeFileSync(ordersCsvPath, '', 'utf8');
   }
 
+  // Agregar el pedido al archivo CSV
   fs.appendFileSync(ordersCsvPath, csvContent, 'utf8');
   console.log('Pedido guardado correctamente.');
 });
-
 
 // Función para cargar pedidos desde el CSV
 ipcMain.handle('load-orders', () => {
@@ -366,20 +371,24 @@ ipcMain.on('generate-pdf', (event, { orders }) => {
       <tbody>
         ${orders.map(order => `
           <tr>
-            <td>${order.client}</td>
+            <td>${order.client?.nombre || 'No especificado'} - ${order.client?.numero || 'Sin número'}</td>
             <td>${order.date}</td>
             <td>
               ${order.items.map(item => `
-                ${item.pizza || item.accompaniment} ${item.secondHalf ? `/ ${item.secondHalf}` : ''} (${item.size}) - Cantidad: ${item.quantity} - Precio: $${item.price.toFixed(2)}<br>
+                ${item.description || item.pizza || item.accompaniment || 'Producto desconocido'}
+                ${item.secondHalf ? ` / ${item.secondHalf}` : ''}
+                ${item.size ? `(${item.size})` : ''} - 
+                Cantidad: ${item.quantity || 1} - 
+                Precio: $${parseFloat(item.price || 0).toFixed(2)}<br>
               `).join('')}
             </td>
-            <td>$${order.total.toFixed(2)}</td>
+            <td>$${parseFloat(order.total).toFixed(2)}</td>
           </tr>
         `).join('')}
       </tbody>
     </table>
 
-    <p class="total">Total Ventas del Mes: $${orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}</p>
+    <p class="total">Total Ventas del Mes: $${orders.reduce((sum, order) => sum + parseFloat(order.total), 0).toFixed(2)}</p>
   </body>
 </html>
 `;
