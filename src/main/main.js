@@ -199,6 +199,8 @@ ipcMain.on('print-receipt', (event, orderData) => {
       <p class="ticket-header">Teléfono: ${orderData.client.numero || 'No especificado'}</p>
       <p class="ticket-header">Fecha: ${new Date().toLocaleString()}</p>
       <p class="ticket-header">Tipo de Pedido: ${orderData.orderType}</p>
+      <p class="ticket-header">Método de Pago: ${orderData.paymentMethod || 'No especificado'}</p>
+      <p class="ticket-header">Observaciones: ${orderData.observations || 'Sin observaciones'}</p>
   
       <table class="items-table">
         <thead>
@@ -223,7 +225,9 @@ ipcMain.on('print-receipt', (event, orderData) => {
           `).join('')}
         </tbody>
       </table>
-  
+
+      <p class="ticket-header"><strong>Total a pagar: $${orderData.total.toFixed(2)}</strong></p>
+
       <div class="footer">
         <p>Este pedido es para uso interno de cocina</p>
         <p>Ristorante Pizzeria</p>

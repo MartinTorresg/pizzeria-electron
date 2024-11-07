@@ -24,6 +24,8 @@ function OrderForm() {
   const [selectedClient, setSelectedClient] = useState({ nombre: 'No especificado', numero: 'No especificado' });
   const [showCustomPizza, setShowCustomPizza] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [observations, setObservations] = useState('');
+  const [customPizzaIngredients, setCustomPizzaIngredients] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -184,6 +186,7 @@ function OrderForm() {
       items: orderItems,
       orderType,
       paymentMethod,
+      observations,
       date: new Date().toLocaleString(),
       total,
     };
@@ -195,6 +198,7 @@ function OrderForm() {
     setOrderItems([]);
     setTotal(0);
     setPaymentMethod('cash');
+    setObservations('');
   };
 
   console.log('Valor total del pedido:', total);
@@ -298,10 +302,6 @@ function OrderForm() {
             className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg py-3 transition duration-200 shadow-md">
             Agregar Pizza al Pedido
           </button>
-        </div>
-
-        {/* Segunda columna: Acompañamientos y Resumen del Pedido */}
-        <div className="col-span-1">
           <h3 className="text-xl font-semibold mb-4">Seleccionar Acompañamiento:</h3>
           <select value={selectedAccompaniment} onChange={(e) => setSelectedAccompaniment(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-2">
             <option value="">Seleccionar acompañamiento...</option>
@@ -326,6 +326,12 @@ function OrderForm() {
             Agregar Acompañamiento
           </button>
 
+        </div>
+
+        {/* Segunda columna: Acompañamientos y Resumen del Pedido */}
+        <div className="col-span-1">
+
+
           {/* Tipo de Pedido */}
           <h3 className="text-xl font-semibold mt-6 mb-2">Tipo de Pedido:</h3>
           <select value={orderType} onChange={(e) => setOrderType(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
@@ -333,6 +339,15 @@ function OrderForm() {
             <option value="delivery">Delivery</option>
             <option value="takeaway">Retiro en el local</option>
           </select>
+
+          <h3 className="text-xl font-semibold mt-6 mb-2">Observaciones:</h3>
+          <textarea
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            placeholder="Escribe aquí las observaciones del pedido..."
+            className="w-full p-2 border border-green-500 rounded-md mb-4"
+            rows="3"
+          />
 
           {/* Método de Pago */}
           <h3 className="text-xl font-semibold mt-6 mb-2">Método de Pago:</h3>
