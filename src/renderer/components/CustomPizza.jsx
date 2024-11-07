@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function CustomPizza({ onAddCustomPizza }) {
+function CustomPizza({ onAddCustomPizza, ingredientLimit = null }) {
   const [size, setSize] = useState('medium');
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [price, setPrice] = useState(4000); // Precio base para la pizza mediana
@@ -42,6 +42,12 @@ function CustomPizza({ onAddCustomPizza }) {
   };
 
   const handleIngredientToggle = (ingredient) => {
+    // Solo aplica el límite si ingredientLimit tiene un valor (como 3 para una promoción)
+    if (ingredientLimit && selectedIngredients.length >= ingredientLimit && !selectedIngredients.some((ing) => ing.name === ingredient.name)) {
+      alert(`Solo puedes seleccionar hasta ${ingredientLimit} ingredientes para esta promoción.`);
+      return;
+    }
+
     const isSelected = selectedIngredients.some((ing) => ing.name === ingredient.name);
     let newIngredients;
     let newPrice = price;
@@ -58,6 +64,7 @@ function CustomPizza({ onAddCustomPizza }) {
     setPrice(newPrice);
   };
 
+
   const handleAddPizza = () => {
     const customPizza = {
       name: `Custom Pizza (${size === 'medium' ? 'Mediana' : 'Familiar'})`,
@@ -65,39 +72,37 @@ function CustomPizza({ onAddCustomPizza }) {
       ingredients: selectedIngredients.map((ingredient) => ingredient.name).join(', '),
       price,
     };
-  
+
     onAddCustomPizza(customPizza);
     setSelectedIngredients([]);
     setSize('medium');
     setPrice(4000);
   };
-  
+
   return (
     <div className="custom-pizza p-2 bg-gray-50 rounded shadow-md border border-gray-200 text-sm">
       <h3 className="text-lg font-semibold mb-2 text-center text-red-500">Arma tu Pizza</h3>
-      
+
       <div className="mb-2 text-center">
         <h4 className="font-medium text-blue-500 mb-1">Elige el Tamaño</h4>
         <div className="flex justify-center space-x-2">
           <button
             onClick={() => handleSizeChange('medium')}
-            className={`px-3 py-1 rounded-md font-semibold ${
-              size === 'medium' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-700'
-            } transition duration-200`}
+            className={`px-3 py-1 rounded-md font-semibold ${size === 'medium' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-700'
+              } transition duration-200`}
           >
             Mediana - $4,000
           </button>
           <button
             onClick={() => handleSizeChange('large')}
-            className={`px-3 py-1 rounded-md font-semibold ${
-              size === 'large' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-700'
-            } transition duration-200`}
+            className={`px-3 py-1 rounded-md font-semibold ${size === 'large' ? 'bg-blue-700 text-white' : 'bg-gray-100 text-gray-700'
+              } transition duration-200`}
           >
             Familiar - $8,000
           </button>
         </div>
       </div>
-      
+
       <div className="mb-2">
         <h4 className="font-medium text-blue-500 mb-1 text-center">Elige tus Ingredientes</h4>
         {Object.keys(ingredientPrices).map((category) => (
@@ -121,7 +126,7 @@ function CustomPizza({ onAddCustomPizza }) {
           </div>
         ))}
       </div>
-      
+
       <div className="mt-2 text-center">
         <h4 className="text-sm font-medium text-blue-500 mb-1">Precio Total: ${price.toFixed(2)}</h4>
         <button

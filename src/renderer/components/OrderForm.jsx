@@ -203,6 +203,20 @@ function OrderForm() {
 
   console.log('Valor total del pedido:', total);
 
+  const handleAddCustomPizzaPromo = (customPizza) => {
+    const promoPrice = selectedPromotion === 'promoM' ? 8500 : 12500;
+    const promotionItem = {
+      promotion: selectedPromotion === 'promoM' ? 'Promoción M' : 'Promoción L',
+      description: `Promoción con Pizza Personalizada: ${customPizza.ingredients} + palitos de ajo + bebida`,
+      quantity: 1,
+      price: promoPrice,
+    };
+
+    setOrderItems((prevItems) => [...prevItems, promotionItem]);
+    setTotal((prevTotal) => prevTotal + promoPrice);
+    setShowCustomPizza(false); // Cierra el modal después de agregar la pizza personalizada
+  };
+
   if (selectedPromotion === 'promoL' && total !== 12500) {
     console.log('Error en el cálculo de promoción: el total debería ser 12500.');
   }
@@ -227,32 +241,49 @@ function OrderForm() {
         <div className="col-span-1">
           {/* Selector de Promoción */}
           <label className="block text-gray-700 font-semibold mb-2">Seleccionar Promoción:</label>
-          <select value={selectedPromotion} onChange={(e) => handlePromotionChange(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+          <select
+            value={selectedPromotion}
+            onChange={(e) => handlePromotionChange(e.target.value)}
+            className="w-full p-2 border border-green-500 rounded-md mb-4"
+          >
             <option value="">Seleccionar promoción...</option>
             <option value="promoM">Promo M</option>
             <option value="promoL">Promo L</option>
           </select>
 
-          {/* Botón para Mostrar/Ocultar CustomPizza */}
+          {/* Botón para Armar Pizza Personalizada */}
           <button
-            onClick={() => setShowCustomPizza(!showCustomPizza)}
+            onClick={() => setShowCustomPizza((prev) => !prev)}  // Cambia de true a false y viceversa
             className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg py-2 px-4 mb-4"
           >
-            {showCustomPizza ? 'Cerrar Personalización de Pizza' : 'Arma tu Pizza'}
+            {showCustomPizza ? 'Cerrar Personalización de Pizza' : 'Armar Pizza Personalizada'}
           </button>
 
-          {/* Componente CustomPizza Condicional */}
-          {showCustomPizza && <CustomPizza onAddCustomPizza={handleAddCustomPizza} />}
+          {/* Componente CustomPizza siempre disponible para personalizar una pizza */}
+          {showCustomPizza && (
+            <CustomPizza
+              onAddCustomPizza={selectedPromotion ? handleAddCustomPizzaPromo : handleAddCustomPizza}
+              ingredientLimit={selectedPromotion === 'promoM' ? 3 : null} // Límite de 3 solo si es promoM
+            />
+          )}
 
           <label className="block text-gray-700 font-semibold mb-2">Seleccionar Tamaño:</label>
-          <select value={size} onChange={(e) => setSize(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+          <select
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            className="w-full p-2 border border-green-500 rounded-md mb-4"
+          >
             <option value="medium">Mediana</option>
             <option value="large">Familiar</option>
           </select>
 
           <div>
             <h3 className="text-xl font-semibold mb-4">Seleccionar Pizza:</h3>
-            <select value={selectedPizza} onChange={(e) => setSelectedPizza(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+            <select
+              value={selectedPizza}
+              onChange={(e) => setSelectedPizza(e.target.value)}
+              className="w-full p-2 border border-green-500 rounded-md mb-4"
+            >
               <option value="">Seleccionar pizza...</option>
               {validPizzas.length > 0 ? validPizzas.map((pizza) => (
                 <option key={pizza.Nombre} value={pizza.Nombre}>
@@ -277,7 +308,11 @@ function OrderForm() {
           {isHalfPizza && (
             <div className="mt-4">
               <label className="block text-gray-700 font-semibold mb-2">Seleccionar Segunda Mitad:</label>
-              <select value={secondHalfPizza} onChange={(e) => setSecondHalfPizza(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-4">
+              <select
+                value={secondHalfPizza}
+                onChange={(e) => setSecondHalfPizza(e.target.value)}
+                className="w-full p-2 border border-green-500 rounded-md mb-4"
+              >
                 <option value="">Seleccionar segunda mitad...</option>
                 {pizzas.map((pizza) => (
                   <option key={pizza.Nombre} value={pizza.Nombre}>
@@ -299,11 +334,17 @@ function OrderForm() {
 
           <button
             onClick={handleAddPizzaToOrder}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg py-3 transition duration-200 shadow-md">
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg py-3 transition duration-200 shadow-md"
+          >
             Agregar Pizza al Pedido
           </button>
+
           <h3 className="text-xl font-semibold mb-4">Seleccionar Acompañamiento:</h3>
-          <select value={selectedAccompaniment} onChange={(e) => setSelectedAccompaniment(e.target.value)} className="w-full p-2 border border-green-500 rounded-md mb-2">
+          <select
+            value={selectedAccompaniment}
+            onChange={(e) => setSelectedAccompaniment(e.target.value)}
+            className="w-full p-2 border border-green-500 rounded-md mb-2"
+          >
             <option value="">Seleccionar acompañamiento...</option>
             {accompaniments.map((acc) => (
               <option key={acc.name} value={acc.name}>
@@ -322,12 +363,11 @@ function OrderForm() {
           <button
             type="button"
             onClick={handleAddAccompanimentToOrder}
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg py-2 transition duration-200">
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg py-2 transition duration-200"
+          >
             Agregar Acompañamiento
           </button>
-
         </div>
-
         {/* Segunda columna: Acompañamientos y Resumen del Pedido */}
         <div className="col-span-1">
 
