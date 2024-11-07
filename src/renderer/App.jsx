@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import OrderForm from './components/OrderForm';
 import AddPizzaForm from './components/AddPizzaForm';
 import OrdersList from './components/OrdersList';
-import AddAccompanimentForm from './components/AddAccompanimentForm'; // Asegúrate de tener este componente
+import AddAccompanimentForm from './components/AddAccompanimentForm';
 import ProductSalesDashboard from './components/ProductSalesDashboard';
 import DateSalesDashboard from './components/DateSalesDashboard';
-import ClientList from './components/ClientList'; // Importamos ClientList
+import ClientList from './components/ClientList';
+import IngredientsDashboard from './components/IngredientsDashboard'; // Importamos IngredientsDashboard
 
 function App() {
   const [currentComponent, setCurrentComponent] = useState(<OrderForm pizzas={[]} />);
   const [pizzas, setPizzas] = useState([]);
-  const [accompaniments, setAccompaniments] = useState([]); // Estado para acompañamientos
+  const [accompaniments, setAccompaniments] = useState([]);
 
   const handleAddPizza = (newPizza) => {
     setPizzas([...pizzas, newPizza]);
@@ -31,7 +32,7 @@ function App() {
           <div className="space-x-4">
             <button
               className="hover:bg-red-500 p-2 rounded transition duration-200 bg-red-400 text-white font-bold"
-              onClick={() => renderComponent(<OrderForm pizzas={pizzas} accompaniments={accompaniments} />)} // Pasar acompañamientos
+              onClick={() => renderComponent(<OrderForm pizzas={pizzas} accompaniments={accompaniments} />)}
             >
               Tomar Pedido
             </button>
@@ -43,7 +44,7 @@ function App() {
             </button>
             <button
               className="hover:bg-yellow-600 p-2 rounded transition duration-200 bg-yellow-500 text-white font-bold"
-              onClick={() => renderComponent(<AddAccompanimentForm onAddAccompaniment={handleAddAccompaniment} />)} // Botón para agregar acompañamientos
+              onClick={() => renderComponent(<AddAccompanimentForm onAddAccompaniment={handleAddAccompaniment} />)}
             >
               Agregar Acompañamiento
             </button>
@@ -67,9 +68,15 @@ function App() {
             </button>
             <button
               className="hover:bg-gray-600 p-2 rounded transition duration-200 bg-gray-500 text-white font-bold"
-              onClick={() => renderComponent(<ClientList />)} // Nuevo botón para ClientList
+              onClick={() => renderComponent(<ClientList />)}
             >
               Ver Clientes
+            </button>
+            <button
+              className="hover:bg-indigo-600 p-2 rounded transition duration-200 bg-indigo-500 text-white font-bold"
+              onClick={() => renderComponent(<IngredientsDashboard />)} // Botón para IngredientsDashboard
+            >
+              Dashboard de Ingredientes
             </button>
           </div>
         </div>

@@ -86,6 +86,7 @@ function OrderForm() {
     setSelectedPizza('');
   };
 
+  // Función para agregar una pizza normal o del menú
   const handleAddPizzaToOrder = () => {
     if (!selectedPizza) {
       alert('Por favor selecciona una pizza.');
@@ -100,18 +101,23 @@ function OrderForm() {
         description: `${selectedPromotion === 'promoM' ? 'Promo M' : 'Promo L'}: ${selectedPizza} + palitos de ajo + bebida`,
         quantity: 1,
         price: promoPrice,
+        ingredients: "", // Puedes ajustar esto si necesitas mostrar ingredientes específicos
       };
 
       setOrderItems((prevItems) => [...prevItems, promotionItem]);
       setTotal((prevTotal) => prevTotal + promoPrice);
     } else {
-      // Agregar pizza normal sin promoción
+      // Agregar pizza normal o pizza por mitades
       const pizzaPrice = calculatePrice();
+
       const newItem = {
-        pizza: selectedPizza,
+        pizza: isHalfPizza ? `${selectedPizza} / ${secondHalfPizza}` : selectedPizza,
         size,
         quantity,
         price: pizzaPrice,
+        ingredients: isHalfPizza
+          ? `${getIngredients(selectedPizza)}, ${getIngredients(secondHalfPizza)}`
+          : getIngredients(selectedPizza),
       };
 
       setOrderItems((prevItems) => [...prevItems, newItem]);
@@ -121,13 +127,26 @@ function OrderForm() {
     resetForm();
   };
 
+  // Helper function para obtener ingredientes de una pizza seleccionada
+  const getIngredients = (pizzaName) => {
+    const pizza = pizzas.find((p) => p.Nombre === pizzaName);
+    return pizza ? pizza.ingredients.join(', ') : "";
+  };
+
   const handleAddCustomPizza = (customPizza) => {
-    if (customPizza && customPizza.ingredients.length > 0) {
-      setOrderItems((prevItems) => [...prevItems, customPizza]);
-      setTotal((prevTotal) => prevTotal + customPizza.price);
-    } else {
-      console.warn('Pizza personalizada sin ingredientes no agregada.');
-    }
+    const ingredientsArray = Array.isArray(customPizza.ingredients) ? customPizza.ingredients : []; // Verificar si es un array
+
+    const newCustomPizzaItem = {
+      description: `Pizza Personalizada: ${ingredientsArray.join(', ')}`, // Descripción
+      quantity: 1,
+      price: customPizza.price,
+      ingredients: ingredientsArray.join(', '), // Convertir a string para almacenamiento
+    };
+
+    console.log("Pizza personalizada añadida al pedido:", newCustomPizzaItem); // Verificar el contenido de newCustomPizzaItem
+
+    setOrderItems((prevItems) => [...prevItems, newCustomPizzaItem]);
+    setTotal((prevTotal) => prevTotal + customPizza.price);
   };
 
   const handleAddAccompanimentToOrder = () => {
@@ -183,7 +202,10 @@ function OrderForm() {
   const handleSubmitOrder = () => {
     const orderData = {
       client: client,
-      items: orderItems,
+      items: orderItems.map(item => ({
+        ...item,
+        ingredients: item.ingredients || '' // Añadimos los ingredientes de cada pizza
+      })),
       orderType,
       paymentMethod,
       observations,
@@ -410,13 +432,14 @@ function OrderForm() {
               {orderItems.map((item, index) => (
                 <li key={index} className="flex justify-between items-center">
                   <span>
-                    {item.quantity} x {item.description || item.pizza || item.accompaniment} - ${item.price.toFixed(2)}
+                    {item.quantity} x {item.description ? item.description : item.pizza ? `Pizza ${item.pizza} - Ingredientes: ${item.ingredients || 'N/A'}` : item.accompaniment} - ${item.price.toFixed(2)}
                   </span>
                   <button onClick={() => handleRemoveFromOrder(index)} className="text-red-500 ml-2">Eliminar</button>
                 </li>
               ))}
             </ul>
           </div>
+
           <table className="min-w-full bg-white shadow-md rounded-lg">
             <tbody>
               <tr>

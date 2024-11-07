@@ -64,21 +64,23 @@ function CustomPizza({ onAddCustomPizza, ingredientLimit = null }) {
     setPrice(newPrice);
   };
 
-
+  // Función para agregar una pizza personalizada
   const handleAddPizza = () => {
     const customPizza = {
-      name: `Custom Pizza (${size === 'medium' ? 'Mediana' : 'Familiar'})`,
+      name: `Pizza Personalizada (${size === 'medium' ? 'Mediana' : 'Familiar'})`,
       size,
-      ingredients: selectedIngredients.map((ingredient) => ingredient.name).join(', '),
+      ingredients: selectedIngredients.map((ingredient) => ingredient.name), // Asegurarse de que siempre sea un array
       price,
     };
-
+  
+    console.log("Custom Pizza creada:", customPizza); // Verificar el contenido de customPizza
+  
     onAddCustomPizza(customPizza);
     setSelectedIngredients([]);
     setSize('medium');
     setPrice(4000);
   };
-
+  
   return (
     <div className="custom-pizza p-2 bg-gray-50 rounded shadow-md border border-gray-200 text-sm">
       <h3 className="text-lg font-semibold mb-2 text-center text-red-500">Arma tu Pizza</h3>
