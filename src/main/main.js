@@ -13,15 +13,16 @@ function createWindow() {
   win = new BrowserWindow({
     width: 800,
     height: 600,
-    icon: path.join(__dirname, '../assets/icons/rambla_logo.PNG'),
+    icon: path.join(__dirname, '../../assets/icons/rambla_logo.ico'),
+    autoHideMenuBar: app.isPackaged,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
-
-  win.loadFile(path.join(__dirname, '../views/index.html'));
+  win.maximize();
+  win.loadFile(path.resolve(__dirname, '../views/index.html'));
 }
 
 app.whenReady().then(() => {
@@ -127,24 +128,38 @@ ipcMain.handle('load-orders', () => {
   console.log('Leyendo pedidos desde:', ordersCsvPath);
 
   if (fs.existsSync(ordersCsvPath)) {
-    const content = fs.readFileSync(ordersCsvPath, 'utf8');
-    const orders = content.split('\n').filter(line => line).map(line => {
-      try {
-        return JSON.parse(line); // Deserializamos cada línea como un objeto JSON completo
-      } catch (error) {
-        console.error('Error al deserializar el pedido:', error);
-        return null;
-      }
-    }).filter(order => order); // Filtramos pedidos nulos por errores de parsing
+    try {
+      const content = fs.readFileSync(ordersCsvPath, 'utf8');
 
-    console.log('Pedidos cargados:', orders);
-    return orders;
+      const orders = content
+        .split('\n') // Divide el contenido por líneas
+        .filter(line => line.trim()) // Elimina líneas vacías
+        .map(line => {
+          try {
+            const order = JSON.parse(line); // Deserializa la línea como JSON
+            // Normaliza la fecha si existe
+            if (order.date) {
+              order.date = order.date.replace('┬', '').trim(); // Elimina caracteres no deseados
+            }
+            return order;
+          } catch (error) {
+            console.error('Error al deserializar el pedido:', error);
+            return null; // Ignora líneas con errores
+          }
+        })
+        .filter(order => order); // Filtra valores nulos
+
+      console.log('Pedidos cargados:', orders);
+      return orders;
+    } catch (error) {
+      console.error('Error al leer el archivo de pedidos:', error);
+      return [];
+    }
   }
 
   console.log('No se encontraron pedidos.');
   return [];
 });
-
 
 // Función para mostrar el diálogo de impresión y permitir elegir la impresora
 ipcMain.on('print-receipt', (event, orderData) => {
@@ -201,7 +216,7 @@ ipcMain.on('print-receipt', (event, orderData) => {
       <p class="ticket-header">Tipo de Pedido: ${orderData.orderType}</p>
       <p class="ticket-header">Método de Pago: ${orderData.paymentMethod || 'No especificado'}</p>
       <p class="ticket-header">Observaciones: ${orderData.observations || 'Sin observaciones'}</p>
-  
+
       <table class="items-table">
         <thead>
           <tr>
@@ -210,19 +225,23 @@ ipcMain.on('print-receipt', (event, orderData) => {
           </tr>
         </thead>
         <tbody>
-          ${orderData.items.map(item => `
-            <tr>
-              <td>
-                ${
-                  item.promotion
-                    ? `${item.promotion}: ${item.description}`
-                    : `${item.pizza || item.accompaniment} ${item.secondHalf ? ` / ${item.secondHalf}` : ''} ${item.size ? `(${item.size})` : ''}`
-                }
-                ${item.ingredients ? `<br><small>Ingredientes: ${item.ingredients}</small>` : ''}
-              </td>
-              <td>${item.quantity}</td>
-            </tr>
-          `).join('')}
+          ${orderData.items.map(item => {
+            // Verifica si es una pizza personalizada o no
+            const itemName = item.pizza || item.accompaniment || 'Producto desconocido';
+            const itemDescription = item.pizza && item.pizza === 'Pizza Personalizada' 
+              ? 'Pizza Personalizada'  // Si es pizza personalizada, asigna ese nombre
+              : item.promotion 
+              ? `${item.promotion}: ${item.description || 'Sin descripción'}`
+              : itemName;
+
+            const itemIngredients = item.ingredients ? `<br><small>Ingredientes: ${item.ingredients}</small>` : '';
+            return `
+              <tr>
+                <td>${itemDescription} ${itemIngredients}</td>
+                <td>${item.quantity}</td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
 

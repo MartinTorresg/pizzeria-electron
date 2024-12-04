@@ -40,12 +40,19 @@ function ProductSalesDashboard() {
 
     const productSalesCount = {};
 
-    // Contabilizar las pizzas
+    // Contabilizar las pizzas personalizadas como un solo producto
     sales.forEach(order => {
       order.items.forEach(item => {
-        if (item.pizza) { // Verificar si es un item de pizza
+        // Verificar si es una pizza personalizada
+        if (item.description && item.description.includes('Pizza Personalizada')) {
+          productSalesCount['Pizza Personalizada'] = (productSalesCount['Pizza Personalizada'] || 0) + item.quantity;
+        } 
+        // Verificar si es una pizza normal
+        else if (item.pizza) {
           productSalesCount[item.pizza] = (productSalesCount[item.pizza] || 0) + item.quantity;
-        } else if (item.accompaniment) { // Verificar si es un acompañamiento
+        } 
+        // Verificar si es un acompañamiento
+        else if (item.accompaniment) {
           productSalesCount[item.accompaniment] = (productSalesCount[item.accompaniment] || 0) + item.quantity;
         }
       });

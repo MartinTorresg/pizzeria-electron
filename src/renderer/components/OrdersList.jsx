@@ -13,11 +13,24 @@ function OrdersList() {
   useEffect(() => {
     window.electron.invoke('load-orders')
       .then((loadedOrders) => {
-        const sortedOrders = loadedOrders.sort((a, b) => {
-          const dateA = new Date(a.date.split(',')[0].split('-').reverse().join('-') + ' ' + a.date.split(',')[1].trim());
-          const dateB = new Date(b.date.split(',')[0].split('-').reverse().join('-') + ' ' + b.date.split(',')[1].trim());
-          return dateB - dateA;
+        const cleanedOrders = loadedOrders.map(order => {
+          const cleanedDate = order.date
+            .replace('┬', '') // Elimina caracteres no deseados
+            .replace('p. m.', 'PM') // Convierte "p. m." a formato 12 horas estándar
+            .replace('a. m.', 'AM'); // Convierte "a. m." a formato 12 horas estándar
+
+          return {
+            ...order,
+            cleanedDate: new Date(
+              cleanedDate.split(',')[0].split('-').reverse().join('-') + // Ajusta formato DD-MM-YYYY a YYYY-MM-DD
+              ' ' +
+              cleanedDate.split(',')[1].trim() // Agrega la hora
+            )
+          };
         });
+
+        const sortedOrders = cleanedOrders.sort((a, b) => b.cleanedDate - a.cleanedDate);
+
         setOrders(sortedOrders);
         filterOrders(sortedOrders, selectedDate, selectedPaymentMethod);
       })
@@ -27,13 +40,16 @@ function OrdersList() {
   }, []);
 
   const filterOrders = (orders, date, paymentMethod) => {
-    const filtered = orders.filter(order => {
-      const orderDate = order.date.split(',')[0]; // Fecha en formato DD-MM-YYYY
-      const matchesDate = orderDate === date.split('-').reverse().join('-'); // Comparar fechas
-      const matchesPaymentMethod = paymentMethod === 'all' || order.paymentMethod === paymentMethod;
+    const filtered = orders
+      .filter(order => {
+        const orderDate = order.date.split(',')[0]; // Fecha en formato DD-MM-YYYY
+        const matchesDate = orderDate === date.split('-').reverse().join('-'); // Comparar fechas
+        const matchesPaymentMethod = paymentMethod === 'all' || order.paymentMethod === paymentMethod;
 
-      return matchesDate && matchesPaymentMethod;
-    });
+        return matchesDate && matchesPaymentMethod;
+      })
+      .sort((a, b) => b.cleanedDate - a.cleanedDate); // Mantiene el orden descendente
+
     setFilteredOrders(filtered);
     setCurrentPage(1); // Resetear a la primera página cuando se filtra
   };

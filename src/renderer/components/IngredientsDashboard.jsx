@@ -14,38 +14,46 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 function IngredientsDashboard() {
   const [ingredientData, setIngredientData] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); // Estado para seleccionar el mes actual
 
   useEffect(() => {
     loadIngredientData();
-  }, []);
+  }, [selectedMonth]); // Dependencia de mes seleccionado
 
   const loadIngredientData = async () => {
     const orders = await window.electron.invoke('load-orders');
-    const ingredientCount = countIngredients(orders);
+    const ingredientCount = countIngredientsByMonth(orders, selectedMonth);
     setIngredientData(ingredientCount);
   };
 
-  const countIngredients = (orders) => {
-    const ingredientCount = {};
+  const countIngredientsByMonth = (orders, selectedMonth) => {
+    const ingredientCountByMonth = {};
   
     orders.forEach((order) => {
-      order.items.forEach((item) => {
-        // Asegurarse de que `item.ingredients` sea una cadena antes de dividir
-        if (typeof item.ingredients === 'string' && item.ingredients.length > 0) {
-          item.ingredients.split(',').forEach((ingredient) => {
-            ingredient = ingredient.trim().toLowerCase(); // Normalizar el nombre del ingrediente
-            ingredientCount[ingredient] = (ingredientCount[ingredient] || 0) + 1;
-          });
-        }
-      });
+      const orderDate = new Date(order.date.split(',')[0].split('-').reverse().join('-')); // Convertir la fecha en un objeto Date
+      const orderMonth = orderDate.getMonth(); // Obtener el mes de la fecha
+  
+      if (orderMonth === selectedMonth) { // Filtrar solo los pedidos del mes seleccionado
+        order.items.forEach((item) => {
+          // Asegurarse de que `item.ingredients` sea una cadena antes de dividir
+          if (typeof item.ingredients === 'string' && item.ingredients.length > 0) {
+            item.ingredients.split(',').forEach((ingredient) => {
+              ingredient = ingredient.trim().toLowerCase(); // Normalizar el nombre del ingrediente
+              ingredientCountByMonth[ingredient] = (ingredientCountByMonth[ingredient] || 0) + 1;
+            });
+          }
+        });
+      }
     });
   
-    return Object.entries(ingredientCount).map(([ingredient, count]) => ({
-      ingredient,
-      count,
-    }));
+    // Convertir el objeto en un arreglo y ordenar por cantidad en orden descendente
+    return Object.entries(ingredientCountByMonth)
+      .map(([ingredient, count]) => ({
+        ingredient,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count); // Ordenar de mayor a menor
   };
-  
 
   const chartData = {
     labels: ingredientData.map(data => data.ingredient),
@@ -64,6 +72,22 @@ function IngredientsDashboard() {
     <div className="ingredients-dashboard mx-auto max-w-3xl p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-3xl font-bold text-center mb-6">Dashboard de Ingredientes</h2>
 
+      {/* Selector de mes */}
+      <div className="mb-4">
+        <label className="block font-semibold">Seleccionar Mes:</label>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(Number(e.target.value))}
+          className="border p-2 rounded"
+        >
+          {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((month, index) => (
+            <option key={index} value={index}>
+              {month}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div style={{ width: '100%', height: '400px' }}>
         <Bar
           data={chartData}
@@ -72,7 +96,7 @@ function IngredientsDashboard() {
             maintainAspectRatio: false,
             plugins: {
               legend: { position: 'top' },
-              title: { display: true, text: 'Ingredientes más Utilizados' },
+              title: { display: true, text: `Ingredientes más Utilizados - ${['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][selectedMonth]}` },
             },
           }}
         />
